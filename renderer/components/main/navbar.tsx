@@ -122,11 +122,11 @@ const Navbar = () => {
 
   const handleItemClick = (item: any) => {
     if (item.type === "Album") {
-      router.push(`/albums/${item.id}`);
+      router.push(`/${Paths.ALBUMS}/${item.id}`);
     } else if (item.type === "Song") {
       setQueueAndPlay([item], 0);
     } else if (item.type === "Playlist") {
-      router.push(`/playlists/${item.id}`);
+      router.push(`/${Paths.PLAYLISTS}/${item.id}`);
     }
     setOpen(false);
   };
