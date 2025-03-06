@@ -37,6 +37,14 @@ type Settings = {
   profilePicture: string;
 };
 
+enum Paths {
+  HOME = "/home",
+  PLAYLISTS = "/playlists",
+  SONGS = "/songs",
+  ALBUMS = "/albums",
+  SETTINGS = "/settings",
+}
+
 const Navbar = () => {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -124,11 +132,11 @@ const Navbar = () => {
   };
 
   useEffect(() => {
-    window.ipc.invoke("getSettings").then((response) => {
+    window?.ipc?.invoke("getSettings").then((response) => {
       setSettings(response);
     });
 
-    window.ipc.on("confirmSettingsUpdate", () => {
+    window?.ipc?.on("confirmSettingsUpdate", () => {
       window.ipc.invoke("getSettings").then((response) => {
         setSettings(response);
       });
@@ -141,21 +149,28 @@ const Navbar = () => {
         <TooltipProvider>
           <Tooltip delayDuration={0}>
             <TooltipTrigger>
-              <Link href="/settings">
+              <Link href={Paths.SETTINGS}>
                 <Avatar className="h-8 w-8">
-                  <AvatarImage src={`${settings && settings.profilePicture ? "wora://" + settings.profilePicture : "/userPicture.png"}`} />
+                  <AvatarImage
+                    src={`${settings?.profilePicture ? "wora://" + settings.profilePicture : "/userPicture.png"}`}
+                  />
                 </Avatar>
               </Link>
             </TooltipTrigger>
             <TooltipContent side="right" sideOffset={25}>
-              <p>{settings && settings.name ? settings.name : "Wora User"}</p>
+              <p>{settings?.name ?? "Wora User"}</p>
             </TooltipContent>
           </Tooltip>
-          <div className="w-[4.5rem] p-8 rounded-2xl wora-border flex flex-col items-center gap-10">
+          <div className="wora-border flex w-[4.5rem] flex-col items-center gap-10 rounded-2xl p-8">
             <Tooltip delayDuration={0}>
               <TooltipTrigger>
-                <Button variant="ghost" asChild>
-                  <Link href="/home">
+                <Button
+                  variant={
+                    router.pathname.includes(Paths.HOME) ? "outline" : "ghost"
+                  }
+                  asChild
+                >
+                  <Link href={Paths.HOME}>
                     <IconInbox stroke={2} className="w-5" />
                   </Link>
                 </Button>
@@ -176,8 +191,15 @@ const Navbar = () => {
             </Tooltip>
             <Tooltip delayDuration={0}>
               <TooltipTrigger>
-                <Button variant="ghost" asChild>
-                  <Link href="/playlists">
+                <Button
+                  variant={
+                    router.pathname.includes(Paths.PLAYLISTS)
+                      ? "outline"
+                      : "ghost"
+                  }
+                  asChild
+                >
+                  <Link href={Paths.PLAYLISTS}>
                     <IconVinyl stroke={2} size={20} />
                   </Link>
                 </Button>
@@ -188,8 +210,13 @@ const Navbar = () => {
             </Tooltip>
             <Tooltip delayDuration={0}>
               <TooltipTrigger>
-                <Button variant="ghost" asChild>
-                  <Link href="/playlists">
+                <Button
+                  variant={
+                    router.pathname.includes(Paths.SONGS) ? "outline" : "ghost"
+                  }
+                  asChild
+                >
+                  <Link href={Paths.SONGS}>
                     <IconList stroke={2} size={20} />
                   </Link>
                 </Button>
@@ -200,8 +227,13 @@ const Navbar = () => {
             </Tooltip>
             <Tooltip delayDuration={0}>
               <TooltipTrigger>
-                <Button variant="ghost" asChild>
-                  <Link href="/albums">
+                <Button
+                  variant={
+                    router.pathname.includes(Paths.ALBUMS) ? "outline" : "ghost"
+                  }
+                  asChild
+                >
+                  <Link href={Paths.ALBUMS}>
                     <IconFocusCentered stroke={2} size={20} />
                   </Link>
                 </Button>
@@ -221,7 +253,6 @@ const Navbar = () => {
               <p className="capitalize">Theme: {theme}</p>
             </TooltipContent>
           </Tooltip>
-
         </TooltipProvider>
       </div>
 
@@ -230,7 +261,8 @@ const Navbar = () => {
           <CommandInput
             placeholder="Search for a song, album or playlist..."
             value={search}
-            onValueChange={setSearch} />
+            onValueChange={setSearch}
+          />
           <CommandList>
             {loading && (
               <div className="flex h-[325px] w-full items-center justify-center">
@@ -247,22 +279,20 @@ const Navbar = () => {
                     className="text-black dark:text-white"
                   >
                     <div className="flex h-full w-full items-center gap-2.5 gradient-mask-r-70">
-                      {(item.type === "Playlist" ||
-                        item.type === "Album") && (
-                          <div className="relative h-12 w-12 overflow-hidden rounded-lg shadow-xl transition duration-300">
-                            <Image
-                              className="object-cover"
-                              src={`wora://${item.cover}`}
-                              alt={item.name}
-                              fill />
-                          </div>
-                        )}
+                      {(item.type === "Playlist" || item.type === "Album") && (
+                        <div className="relative h-12 w-12 overflow-hidden rounded-lg shadow-xl transition duration-300">
+                          <Image
+                            className="object-cover"
+                            src={`wora://${item.cover}`}
+                            alt={item.name}
+                            fill
+                          />
+                        </div>
+                      )}
                       <div>
                         <p className="w-full overflow-hidden text-nowrap text-xs">
                           {item.name}
-                          <span className="ml-1 opacity-50">
-                            ({item.type})
-                          </span>
+                          <span className="ml-1 opacity-50">({item.type})</span>
                         </p>
                         <p className="w-full text-xs opacity-50">
                           {item.type === "Playlist"

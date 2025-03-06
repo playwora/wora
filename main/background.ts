@@ -14,6 +14,7 @@ import {
   getPlaylists,
   getRandomLibraryItems,
   getSettings,
+  getSongs,
   initializeData,
   isSongFavorite,
   removeSongFromPlaylist,
@@ -51,7 +52,7 @@ const initializeLibrary = async () => {
       await initializeData(settings.musicFolder);
     }
   } catch (error) {
-    console.error('Error initializing library:', error);
+    console.error("Error initializing library:", error);
   }
 };
 
@@ -113,43 +114,46 @@ const initializeLibrary = async () => {
 
 // @hiaaryan: Initialize Discord RPC
 const client = new Client({
-  clientId: "1243707416588320800"
+  clientId: "1243707416588320800",
 });
 
-ipcMain.on("set-rpc-state", async (_, { details, state, seek, duration, cover }) => {
-  let startTimestamp, endTimestamp;
+ipcMain.on(
+  "set-rpc-state",
+  async (_, { details, state, seek, duration, cover }) => {
+    let startTimestamp, endTimestamp;
 
-  if (duration && seek) {
-    const now = Math.ceil(Date.now());
-    startTimestamp = now - (seek * 1000);
-    endTimestamp = now + ((duration - seek) * 1000);
-  }
-
-  const setActivity = {
-    details,
-    state,
-    largeImageKey: cover,
-    instance: false,
-    type: 2,
-    startTimestamp: startTimestamp,
-    endTimestamp: endTimestamp,
-    buttons: [
-      { label: "Support Project", url: "https://github.com/hiaaryan/wora" },
-    ]
-  };
-
-  if (!client.isConnected) {
-    try {
-      await client.login();
-    } catch (error) {
-      console.error('Error logging into Discord:', error);
+    if (duration && seek) {
+      const now = Math.ceil(Date.now());
+      startTimestamp = now - seek * 1000;
+      endTimestamp = now + (duration - seek) * 1000;
     }
-  }
 
-  if (client.isConnected) {
-    client.user.setActivity(setActivity);
-  }
-});
+    const setActivity = {
+      details,
+      state,
+      largeImageKey: cover,
+      instance: false,
+      type: 2,
+      startTimestamp: startTimestamp,
+      endTimestamp: endTimestamp,
+      buttons: [
+        { label: "Support Project", url: "https://github.com/hiaaryan/wora" },
+      ],
+    };
+
+    if (!client.isConnected) {
+      try {
+        await client.login();
+      } catch (error) {
+        console.error("Error logging into Discord:", error);
+      }
+    }
+
+    if (client.isConnected) {
+      client.user.setActivity(setActivity);
+    }
+  },
+);
 
 // @hiaaryan: Called to Rescan Library
 ipcMain.handle("rescanLibrary", async () => {
@@ -220,6 +224,10 @@ ipcMain.handle("getAlbums", async (_, page) => {
 ipcMain.handle("getAllPlaylists", async () => {
   const playlists = await getPlaylists();
   return playlists;
+});
+
+ipcMain.handle("getSongs", async (_, page) => {
+  return await getSongs(page);
 });
 
 ipcMain.handle("getAlbumWithSongs", async (_, id: number) => {

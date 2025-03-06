@@ -83,8 +83,26 @@ export const updateSettings = async (data: any) => {
   return true;
 };
 
-export const getSongs = async () => {
-  return await db.select().from(songs).orderBy(songs.name);
+export const getSongs = async (page: number, limit: number = 30) => {
+  return await db
+    .select({
+      id: songs.id,
+      name: songs.name,
+      artist: songs.artist,
+      duration: songs.duration,
+      filePath: songs.filePath,
+      album: {
+        id: albums.id,
+        name: albums.name,
+        artist: albums.artist,
+        cover: albums.cover,
+      },
+    })
+    .from(songs)
+    .orderBy(songs.name)
+    .limit(limit)
+    .offset((page - 1) * limit)
+    .leftJoin(albums, eq(songs.albumId, albums.id));
 };
 
 export const getAlbums = async (page: number, limit: number = 15) => {

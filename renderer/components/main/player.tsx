@@ -227,7 +227,7 @@ export const Player = () => {
   }, []);
 
   useEffect(() => {
-    window.ipc.invoke("getAllPlaylists").then((response) => {
+    window?.ipc?.invoke("getAllPlaylists").then((response) => {
       setPlaylists(response);
     });
   }, []);

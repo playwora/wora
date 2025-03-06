@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import {
   ContextMenu,
@@ -26,14 +26,22 @@ import { Playlist } from "@/types";
 type SongsProps = {
   library: Song[];
   renderAdditionalMenuItems?: (song: Song, index: number) => React.ReactNode;
+  loadMore: () => void;
+  loading: boolean;
+  hasMore: boolean;
 };
 
-const Songs: React.FC<SongsProps> = ({
+const InfiniteLoadingSongs: React.FC<SongsProps> = ({
   library,
+  loadMore,
   renderAdditionalMenuItems,
+  loading,
+  hasMore,
 }) => {
   const { setQueueAndPlay, playNext, addToQueue } = usePlayer();
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
+  
+  const observer = useRef<IntersectionObserver | null>(null);
 
   const handleMusicClick = (index: number) => {
     setQueueAndPlay(library, index);
@@ -45,6 +53,18 @@ const Songs: React.FC<SongsProps> = ({
     });
   }, []);
 
+  const lastSongElementRef = useCallback(
+    (node: HTMLDivElement | null) => {
+      if (observer.current) observer.current.disconnect();
+      observer.current = new IntersectionObserver((entries) => {
+        if (entries[0].isIntersecting && hasMore && !loading) {
+          loadMore();
+        }
+      });
+      if (node) observer.current.observe(node);
+    },
+    [loadMore, hasMore, loading],
+  );
   const addSongToPlaylist = (playlistId: number, songId: number) => {
     window.ipc
       .invoke("addSongToPlaylist", {
@@ -73,7 +93,8 @@ const Songs: React.FC<SongsProps> = ({
   return (
     <div className="flex w-full flex-col">
       {library?.map((song: Song, index: number) => (
-        <ContextMenu key={song.id}>
+        <div key={song.id} ref={index === library.length - 1 ? lastSongElementRef : null}>
+        <ContextMenu>
           <ContextMenuTrigger>
             <button
               className="wora-transition flex w-full cursor-pointer items-center justify-between rounded-xl p-3 hover:bg-black/5 dark:hover:bg-white/10"
@@ -143,13 +164,13 @@ const Songs: React.FC<SongsProps> = ({
                 ))}
               </ContextMenuSubContent>
             </ContextMenuSub>
-            {renderAdditionalMenuItems &&
-              renderAdditionalMenuItems(song, index)}
+            {renderAdditionalMenuItems?.(song, index)}
           </ContextMenuContent>
         </ContextMenu>
+        </div>
       ))}
     </div>
   );
 };
 
-export default Songs;
+export default InfiniteLoadingSongs;

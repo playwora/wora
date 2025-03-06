@@ -19,7 +19,7 @@ function Actions() {
   const [isMaximized, setIsMaximized] = useState(false);
 
   useEffect(() => {
-    window.ipc.invoke("getActionsData").then((response) => {
+    window?.ipc?.invoke("getActionsData").then((response) => {
       setData(response);
     });
   }, []);
@@ -45,7 +45,7 @@ function Actions() {
           Wora
         </div>
         <div className="no-drag absolute -right-2 top-0 flex h-full items-center gap-2.5">
-          {data && data.isNotMac && (
+          {data?.isNotMac && (
             <>
               <Button
                 variant="ghost"
