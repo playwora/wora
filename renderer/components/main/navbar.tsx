@@ -143,7 +143,9 @@ const Navbar = () => {
             <TooltipTrigger>
               <Link href="/settings">
                 <Avatar className="h-8 w-8">
-                  <AvatarImage src={`${settings && settings.profilePicture ? "wora://" + settings.profilePicture : "/userPicture.png"}`} />
+                  <AvatarImage
+                    src={`${settings && settings.profilePicture ? "wora://" + settings.profilePicture : "/userPicture.png"}`}
+                  />
                 </Avatar>
               </Link>
             </TooltipTrigger>
@@ -151,7 +153,7 @@ const Navbar = () => {
               <p>{settings && settings.name ? settings.name : "Wora User"}</p>
             </TooltipContent>
           </Tooltip>
-          <div className="w-[4.5rem] p-8 rounded-2xl wora-border flex flex-col items-center gap-10">
+          <div className="wora-border flex w-[4.5rem] flex-col items-center gap-10 rounded-2xl p-8">
             <Tooltip delayDuration={0}>
               <TooltipTrigger>
                 <Button variant="ghost" asChild>
@@ -189,7 +191,7 @@ const Navbar = () => {
             <Tooltip delayDuration={0}>
               <TooltipTrigger>
                 <Button variant="ghost" asChild>
-                  <Link href="/playlists">
+                  <Link href="/songs">
                     <IconList stroke={2} size={20} />
                   </Link>
                 </Button>
@@ -221,7 +223,6 @@ const Navbar = () => {
               <p className="capitalize">Theme: {theme}</p>
             </TooltipContent>
           </Tooltip>
-
         </TooltipProvider>
       </div>
 
@@ -230,7 +231,8 @@ const Navbar = () => {
           <CommandInput
             placeholder="Search for a song, album or playlist..."
             value={search}
-            onValueChange={setSearch} />
+            onValueChange={setSearch}
+          />
           <CommandList>
             {loading && (
               <div className="flex h-[325px] w-full items-center justify-center">
@@ -247,22 +249,20 @@ const Navbar = () => {
                     className="text-black dark:text-white"
                   >
                     <div className="flex h-full w-full items-center gap-2.5 gradient-mask-r-70">
-                      {(item.type === "Playlist" ||
-                        item.type === "Album") && (
-                          <div className="relative h-12 w-12 overflow-hidden rounded-lg shadow-xl transition duration-300">
-                            <Image
-                              className="object-cover"
-                              src={`wora://${item.cover}`}
-                              alt={item.name}
-                              fill />
-                          </div>
-                        )}
+                      {(item.type === "Playlist" || item.type === "Album") && (
+                        <div className="relative h-12 w-12 overflow-hidden rounded-lg shadow-xl transition duration-300">
+                          <Image
+                            className="object-cover"
+                            src={`wora://${item.cover}`}
+                            alt={item.name}
+                            fill
+                          />
+                        </div>
+                      )}
                       <div>
                         <p className="w-full overflow-hidden text-nowrap text-xs">
                           {item.name}
-                          <span className="ml-1 opacity-50">
-                            ({item.type})
-                          </span>
+                          <span className="ml-1 opacity-50">({item.type})</span>
                         </p>
                         <p className="w-full text-xs opacity-50">
                           {item.type === "Playlist"
