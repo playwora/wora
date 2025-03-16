@@ -333,6 +333,23 @@ export const getRandomLibraryItems = async () => {
   };
 };
 
+export const getLibraryItems = async () => {
+  const albumsList = await db
+    .select()
+    .from(albums)
+    .orderBy(sql`RANDOM()`);
+
+  const songsList = await db.query.songs.findMany({
+    with: { album: true },
+    //orderBy: sql`RANDOM()`,
+  });
+
+  return {
+    albums: albumsList,
+    songs: songsList,
+  };
+};
+
 export const initializeData = async (musicFolder: string) => {
   const currentFiles = readFilesRecursively(musicFolder);
   const dbFiles = await db.select().from(songs);
