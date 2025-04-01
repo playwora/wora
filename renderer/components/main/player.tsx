@@ -19,6 +19,7 @@ import {
   IconVinyl,
   IconVolume,
   IconVolumeOff,
+  IconShareplay,
   IconX,
 } from "@tabler/icons-react";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -65,6 +66,13 @@ export const Player = () => {
   const [showQueue, setShowQueue] = useState(false);
   const [isFavourite, setIsFavourite] = useState(false);
   const [playlists, setPlaylists] = useState([]);
+  const [availableOutputDevices, setAvailableOutputDevices] = useState<
+    MediaDeviceInfo[]
+  >([]);
+  const [outputDevice, setOutputDevice] = useState<MediaDeviceInfo | undefined>(
+    undefined,
+  );
+  const [howlAudioElement, setHowlAudioElement] = useState<any>(undefined);
   const {
     song,
     nextSong,
@@ -91,6 +99,39 @@ export const Player = () => {
   }, []);
 
   useEffect(() => {
+    async function loadAvailableOutputDevices() {
+      console.log("Loading available audio output devices.");
+
+      const devices = await navigator.mediaDevices.enumerateDevices();
+
+      const audioOutputDevices = devices.filter(
+        (device) => device.kind === "audiooutput",
+      );
+
+      setAvailableOutputDevices(audioOutputDevices);
+      console.log("Loaded available audio output devices.");
+    }
+
+    loadAvailableOutputDevices();
+  }, []);
+
+  useEffect(() => {
+    if (howlAudioElement === undefined) {
+      console.log("howlAudioElement not ready yet, cannot set output device.");
+      return;
+    }
+
+    howlAudioElement
+      .setSinkId(outputDevice.deviceId)
+      .then(() => {
+        console.log("Audio output successfully redirected.");
+      })
+      .catch((error) => {
+        throw Error("Failed to redirect audio output:", error);
+      });
+  }, [outputDevice]);
+
+  useEffect(() => {
     if (!song?.filePath) return;
 
     const sound = new Howl({
@@ -104,6 +145,19 @@ export const Player = () => {
         setSeekPosition(0);
         setIsPlaying(true);
         updateDiscordState(1, song);
+
+        // @ts-ignore
+        const audioElement = sound._sounds[0]._node; // Access the underlying HTMLAudioElement
+
+        if (
+          "setSinkId" in audioElement &&
+          typeof audioElement.setSinkId === "function"
+        ) {
+          setHowlAudioElement(audioElement);
+          console.log("Successfully set howlAudioElement.");
+        } else {
+          console.error("Unable to set howlAudioElement.");
+        }
       },
       onloaderror: (error) => {
         setIsPlaying(false);
@@ -557,6 +611,27 @@ export const Player = () => {
             </div>
             <div className="absolute right-0 flex w-1/4 items-center justify-end gap-10">
               <div className="flex items-center gap-4">
+                <Dialog>
+                  <DialogTrigger>
+                    <IconShareplay
+                      stroke={2}
+                      size={17.5}
+                      className="wora-transition !opacity-30 hover:!opacity-100"
+                    />
+                  </DialogTrigger>
+                  <DialogContent>
+                    <h5>Available Output Devices</h5>
+                    {availableOutputDevices.map((i) => {
+                      return (
+                        <div>
+                          <button onClick={() => setOutputDevice(i)}>
+                            {i.label}
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </DialogContent>
+                </Dialog>
                 <Button
                   variant="ghost"
                   onClick={toggleMute}
