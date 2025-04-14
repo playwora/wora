@@ -5,3 +5,10 @@ app
 dist
 .DS_Store
 .db
+
+# Environment variables
+.env
+.env.local
+.env.development
+.env.production
+.vercel

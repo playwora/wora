@@ -50,6 +50,11 @@ type SongsProps = {
   loadingMore?: boolean;
 };
 
+// Skeleton loader for song covers
+const SongSkeleton = () => (
+  <div className="absolute inset-0 h-full w-full animate-pulse bg-neutral-200 dark:bg-neutral-800" />
+);
+
 // Memoized song item component to prevent unnecessary re-renders
 const SongItem = memo(
   ({
@@ -71,6 +76,7 @@ const SongItem = memo(
     addSongToPlaylist: (playlistId: number, songId: number) => void;
     renderAdditionalMenuItems?: (song: Song, index: number) => React.ReactNode;
   }) => {
+    const [imgLoaded, setImgLoaded] = useState(false);
     return (
       <ContextMenu>
         <ContextMenuTrigger>
@@ -80,6 +86,7 @@ const SongItem = memo(
           >
             <div className="flex items-center gap-4">
               <div className="relative h-12 w-12 overflow-hidden rounded-lg shadow-lg transition duration-300">
+                {!imgLoaded && <SongSkeleton />}
                 <Image
                   alt={song.album.name}
                   src={
@@ -92,10 +99,11 @@ const SongItem = memo(
                   }
                   fill
                   loading="lazy"
-                  className="object-cover"
+                  className={`object-cover transition-opacity duration-500 ${imgLoaded ? "opacity-100" : "opacity-0"}`}
                   quality={10}
                   sizes="48px"
                   priority={false}
+                  onLoad={() => setImgLoaded(true)}
                 />
               </div>
               <div className="flex flex-col">

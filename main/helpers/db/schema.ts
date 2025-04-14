@@ -6,6 +6,10 @@ export const settings = sqliteTable("settings", {
   name: text("name"),
   profilePicture: text("profilePicture"),
   musicFolder: text("musicFolder"),
+  lastFmUsername: text("lastFmUsername"),
+  lastFmSessionKey: text("lastFmSessionKey"),
+  enableLastFm: integer("enableLastFm", { mode: "boolean" }).default(false),
+  scrobbleThreshold: integer("scrobbleThreshold").default(50),
 });
 
 export const albums = sqliteTable("albums", {

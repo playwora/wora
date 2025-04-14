@@ -900,6 +900,63 @@ async function cleanupOrphanedRecords(currentFiles: string[]) {
   }
 }
 
+// Migrate database to add columns that might be missing
+export const migrateDatabase = async () => {
+  try {
+    console.log("Checking database schema for migrations...");
+
+    // Check if LastFM columns exist in settings table
+    const tableInfo = sqlite
+      .prepare("PRAGMA table_info(settings)")
+      .all() as Array<{ name: string }>;
+    const columnNames = tableInfo.map((col) => col.name);
+
+    const missingColumns = [];
+
+    // Check for lastFmUsername column
+    if (!columnNames.includes("lastFmUsername")) {
+      missingColumns.push("lastFmUsername TEXT");
+    }
+
+    // Check for lastFmSessionKey column
+    if (!columnNames.includes("lastFmSessionKey")) {
+      missingColumns.push("lastFmSessionKey TEXT");
+    }
+
+    // Check for enableLastFm column
+    if (!columnNames.includes("enableLastFm")) {
+      missingColumns.push("enableLastFm INTEGER DEFAULT 0");
+    }
+
+    // Check for scrobbleThreshold column
+    if (!columnNames.includes("scrobbleThreshold")) {
+      missingColumns.push("scrobbleThreshold INTEGER DEFAULT 50");
+    }
+
+    // Add missing columns if any
+    if (missingColumns.length > 0) {
+      console.log(
+        `Adding ${missingColumns.length} missing columns to settings table...`,
+      );
+
+      for (const columnDef of missingColumns) {
+        const alterSql = `ALTER TABLE settings ADD COLUMN ${columnDef}`;
+        sqlite.exec(alterSql);
+        console.log(`Added column: ${columnDef}`);
+      }
+
+      console.log("Database migration completed successfully.");
+    } else {
+      console.log("Database schema is up to date, no migration needed.");
+    }
+
+    return true;
+  } catch (error) {
+    console.error("Error during database migration:", error);
+    return false;
+  }
+};
+
 // Helper function to send messages to the renderer process
 function sendToRenderer(channel: string, data: any) {
   try {
@@ -1056,4 +1113,77 @@ export const getAlbumsWithDuration = async (
   });
 
   return albumsWithDurations;
+};
+
+// Add these functions at the end of the file
+
+// LastFM related functions
+export const updateLastFmSettings = async (data: {
+  lastFmUsername: string;
+  lastFmSessionKey: string;
+  enableLastFm: boolean;
+  scrobbleThreshold: number;
+}) => {
+  try {
+    const currentSettings = await db.select().from(settings);
+
+    if (currentSettings.length === 0) {
+      // Create new settings if none exist
+      await db.insert(settings).values({
+        lastFmUsername: data.lastFmUsername,
+        lastFmSessionKey: data.lastFmSessionKey,
+        enableLastFm: data.enableLastFm,
+        scrobbleThreshold: data.scrobbleThreshold || 50,
+      });
+    } else {
+      // Update existing settings
+      await db
+        .update(settings)
+        .set({
+          lastFmUsername: data.lastFmUsername,
+          lastFmSessionKey: data.lastFmSessionKey,
+          enableLastFm: data.enableLastFm,
+          scrobbleThreshold: data.scrobbleThreshold || 50,
+        })
+        .where(eq(settings.id, currentSettings[0].id));
+    }
+
+    return true;
+  } catch (error) {
+    console.error("Error updating LastFM settings:", error);
+    return false;
+  }
+};
+
+export const getLastFmSettings = async () => {
+  try {
+    const settingsRow = await db
+      .select({
+        lastFmUsername: settings.lastFmUsername,
+        lastFmSessionKey: settings.lastFmSessionKey,
+        enableLastFm: settings.enableLastFm,
+        scrobbleThreshold: settings.scrobbleThreshold,
+      })
+      .from(settings)
+      .limit(1);
+
+    if (settingsRow.length === 0) {
+      return {
+        lastFmUsername: null,
+        lastFmSessionKey: null,
+        enableLastFm: false,
+        scrobbleThreshold: 50,
+      };
+    }
+
+    return settingsRow[0];
+  } catch (error) {
+    console.error("Error getting LastFM settings:", error);
+    return {
+      lastFmUsername: null,
+      lastFmSessionKey: null,
+      enableLastFm: false,
+      scrobbleThreshold: 50,
+    };
+  }
 };

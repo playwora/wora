@@ -120,14 +120,20 @@ const Navbar = () => {
   // Handle navigation with page state reset when clicking active page
   const handleNavigation = useCallback(
     (href: string, e: React.MouseEvent) => {
-      // If we're already on this page, prevent default navigation and reset page state
+      // If we're on this exact page or a subpage of it
       if (isActive(href)) {
         e.preventDefault();
 
         // Scroll to top
         window.scrollTo(0, 0);
 
-        // Reset page state based on the route
+        // If we're on a subpath (e.g., /albums/[slug]), navigate to the main path
+        if (router.pathname !== href) {
+          router.push(href);
+          return;
+        }
+
+        // If we're already on the exact page, just reset state
         if (href === "/albums") {
           // Reset albums page state
           window.ipc.send("resetAlbumsPageState", null);
@@ -142,8 +148,7 @@ const Navbar = () => {
           window.ipc.send("resetHomePageState", null);
         }
 
-        // Re-route to the same page to refresh components
-        router.replace(router.asPath);
+        // Removed router.replace(router.asPath) to allow smooth transitions
       }
     },
     [router],
@@ -364,7 +369,7 @@ const Navbar = () => {
               </CommandGroup>
             ) : (
               <div className="flex h-[325px] w-full items-center justify-center text-xs">
-                <div className="ml-2 rounded-lg bg-black/5 px-1.5 py-1 shadow-sm dark:bg-white/10">
+                <div className="dark:bg.white/10 ml-2 rounded-lg bg-black/5 px-1.5 py-1 shadow-sm">
                   ⌘ / Ctrl + F
                 </div>
               </div>

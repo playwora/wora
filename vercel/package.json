@@ -1,0 +1,20 @@
+{
+  "name": "wora-api",
+  "version": "0.4.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start"
+  },
+  "dependencies": {
+    "next": "^14.2.21",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "node-fetch": "2",
+    "crypto-js": "^4.2.0",
+    "typescript": "^5.7.2",
+    "@types/react": "^18.3.18",
+    "@types/node": "^22.10.2"
+  }
+}

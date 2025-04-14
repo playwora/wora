@@ -36,6 +36,11 @@ const scrollbarHiddenStyles = {
   overflow: "scroll", // Keep scroll functionality
 };
 
+// Skeleton loader for album covers
+const AlbumSkeleton = () => (
+  <div className="absolute inset-0 h-full w-full animate-pulse bg-neutral-200 dark:bg-neutral-800" />
+);
+
 const VirtualizedAlbumGrid: React.FC<VirtualizedAlbumGridProps> = ({
   albums,
   navigateToArtist,
@@ -253,6 +258,8 @@ const VirtualizedAlbumGrid: React.FC<VirtualizedAlbumGridProps> = ({
       : album.artworkUrl || "/coverArt.png";
     const duration = albumDurations[album.id] || "--:--";
 
+    const [imgLoaded, setImgLoaded] = useState(false);
+
     // Render different views based on viewMode
     if (viewMode === "list") {
       return (
@@ -263,13 +270,15 @@ const VirtualizedAlbumGrid: React.FC<VirtualizedAlbumGridProps> = ({
           >
             <div className="flex items-center gap-4">
               <div className="relative h-16 w-16 overflow-hidden rounded-lg shadow-lg">
+                {!imgLoaded && <AlbumSkeleton />}
                 <Image
                   alt={album.name}
                   src={imageSrc}
                   fill
                   loading="lazy"
-                  className="object-cover"
+                  className={`object-cover transition-opacity duration-500 ${imgLoaded ? "opacity-100" : "opacity-0"}`}
                   quality={10}
+                  onLoad={() => setImgLoaded(true)}
                 />
               </div>
               <div className="flex flex-col">
@@ -308,14 +317,16 @@ const VirtualizedAlbumGrid: React.FC<VirtualizedAlbumGridProps> = ({
             className="group/album flex flex-col items-center"
           >
             <div className="relative aspect-square w-full overflow-hidden rounded-lg shadow-md transition-all duration-200 hover:shadow-xl">
+              {!imgLoaded && <AlbumSkeleton />}
               <Image
                 alt={album.name}
                 src={imageSrc}
                 fill
                 loading="lazy"
-                className="object-cover transition-all duration-200 group-hover/album:scale-105"
+                className={`object-cover transition-opacity duration-1000 group-hover/album:scale-105 ${imgLoaded ? "opacity-100" : "opacity-0"}`}
                 sizes="(max-width: 640px) 33vw, (max-width: 768px) 25vw, 16vw"
                 quality={20}
+                onLoad={() => setImgLoaded(true)}
               />
             </div>
             <p
@@ -337,14 +348,16 @@ const VirtualizedAlbumGrid: React.FC<VirtualizedAlbumGridProps> = ({
           className="group/album flex flex-col"
         >
           <div className="relative aspect-square w-full overflow-hidden rounded-lg shadow-md transition-all duration-200 hover:shadow-xl">
+            {!imgLoaded && <AlbumSkeleton />}
             <Image
               alt={album.name}
               src={imageSrc}
               fill
               loading="lazy"
-              className="object-cover transition-all duration-200 group-hover/album:scale-105"
+              className={`object-cover transition-opacity duration-1000 group-hover/album:scale-105 ${imgLoaded ? "opacity-100" : "opacity-0"}`}
               sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, 20vw"
               quality={50}
+              onLoad={() => setImgLoaded(true)}
             />
           </div>
           <div className="mt-3 flex flex-col">

@@ -2,6 +2,7 @@ import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import {
   IconArrowsShuffle2,
+  IconBrandLastfm,
   IconCheck,
   IconClock,
   IconHeart,
@@ -59,6 +60,12 @@ import {
   ContextMenuSubTrigger,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
+import {
+  initializeLastFMWithSession,
+  scrobbleTrack,
+  updateNowPlaying,
+  isAuthenticated,
+} from "@/lib/lastfm";
 
 // Toast notification component for consistent messaging
 const NotificationToast = ({ success, message }) => (
@@ -84,6 +91,20 @@ export const Player = () => {
   const [isFavourite, setIsFavourite] = useState(false);
   const [playlists, setPlaylists] = useState([]);
   const [isClient, setIsClient] = useState(false);
+  const [lastFmSettings, setLastFmSettings] = useState({
+    lastFmUsername: null,
+    lastFmSessionKey: null,
+    enableLastFm: false,
+    scrobbleThreshold: 50,
+  });
+  const [lastFmStatus, setLastFmStatus] = useState({
+    isScrobbled: false,
+    isNowPlaying: false,
+    scrobbleTimerStarted: false,
+    error: null,
+    lastFmActive: false,
+  });
+  const scrobbleTimeout = useRef<NodeJS.Timeout | null>(null);
 
   // References
   const soundRef = useRef<Howl | null>(null);
@@ -104,6 +125,164 @@ export const Player = () => {
   } = usePlayer();
 
   const { metadata, lyrics, favourite } = useAudioMetadata(song?.filePath);
+
+  // Load Last.fm settings
+  useEffect(() => {
+    const loadLastFmSettings = async () => {
+      try {
+        const settings = await window.ipc.invoke("getLastFmSettings");
+        setLastFmSettings(settings);
+
+        // Initialize Last.fm with session key if available
+        if (settings.lastFmSessionKey && settings.enableLastFm) {
+          initializeLastFMWithSession(
+            settings.lastFmSessionKey,
+            settings.lastFmUsername || "",
+          );
+          setLastFmStatus((prev) => ({ ...prev, lastFmActive: true }));
+          console.log("[Last.fm] Initialized with session key");
+        } else {
+          // Clear Last.fm status if disabled or no session
+          setLastFmStatus((prev) => ({
+            ...prev,
+            lastFmActive: false,
+            isScrobbled: false,
+            isNowPlaying: false,
+          }));
+          console.log("[Last.fm] Disabled or no session key");
+        }
+      } catch (error) {
+        console.error("[Last.fm] Error loading settings:", error);
+      }
+    };
+
+    // Load settings initially
+    loadLastFmSettings();
+
+    // Set up listener for Last.fm settings changes
+    const removeListener = window.ipc.on(
+      "lastFmSettingsChanged",
+      loadLastFmSettings,
+    );
+
+    return () => {
+      removeListener();
+    };
+  }, []);
+
+  // Reset scrobble status when song changes
+  useEffect(() => {
+    setLastFmStatus({
+      isScrobbled: false,
+      isNowPlaying: false,
+      scrobbleTimerStarted: false,
+      error: null,
+      lastFmActive: lastFmStatus.lastFmActive,
+    });
+
+    if (scrobbleTimeout.current) {
+      clearInterval(scrobbleTimeout.current);
+      scrobbleTimeout.current = null;
+    }
+  }, [song]);
+
+  // Last.fm scrobble handler
+  const handleScrobble = useCallback(() => {
+    if (
+      !song ||
+      !lastFmSettings.enableLastFm ||
+      lastFmStatus.isScrobbled ||
+      !isAuthenticated()
+    ) {
+      // Skip scrobble checks without verbose logging
+      return;
+    }
+
+    // Clear existing timer if any
+    if (scrobbleTimeout.current) {
+      clearInterval(scrobbleTimeout.current);
+      scrobbleTimeout.current = null;
+    }
+
+    const scrobbleIfThresholdReached = () => {
+      if (!soundRef.current || lastFmStatus.isScrobbled) return;
+
+      const duration = soundRef.current.duration();
+      const currentPosition = soundRef.current.seek();
+      const playedPercentage = (currentPosition / duration) * 100;
+
+      // Only log in development
+      if (process.env.NODE_ENV !== "production") {
+        console.log(
+          `[Last.fm] Position: ${playedPercentage.toFixed(1)}%, threshold: ${lastFmSettings.scrobbleThreshold}%`,
+        );
+      }
+
+      if (playedPercentage >= lastFmSettings.scrobbleThreshold) {
+        // Clear the interval immediately to prevent multiple scrobbles
+        if (scrobbleTimeout.current) {
+          clearInterval(scrobbleTimeout.current);
+          scrobbleTimeout.current = null;
+        }
+
+        // Set scrobbled status immediately to prevent race conditions
+        setLastFmStatus((prev) => ({ ...prev, isScrobbled: true }));
+
+        // Minimal logging for production, log to file only for important events
+        try {
+          window.ipc.send("lastfm:log", {
+            level: "info",
+            message: `Scrobbling track: ${song.artist} - ${song.name} (${playedPercentage.toFixed(1)}%)`,
+          });
+        } catch (err) {
+          // Silent error in production
+        }
+
+        // Scrobble the track
+        scrobbleTrack(song)
+          .then((success) => {
+            if (!success) {
+              setLastFmStatus((prev) => ({
+                ...prev,
+                error: "Failed to scrobble track",
+                isScrobbled: false, // Reset scrobbled state to allow retrying
+              }));
+            }
+          })
+          .catch((err) => {
+            // Log only the error message, not the entire error object
+            try {
+              window.ipc.send("lastfm:log", {
+                level: "error",
+                message: `Scrobble error: ${err?.message || "Unknown error"}`,
+              });
+            } catch (logErr) {
+              // Silent fail in production
+            }
+
+            setLastFmStatus((prev) => ({
+              ...prev,
+              error: "Error scrobbling track",
+              isScrobbled: false, // Reset scrobbled state to allow retrying
+            }));
+          });
+      }
+    };
+
+    // Set timer to check scrobble threshold
+    const checkInterval = 2000; // Check every 2 seconds
+    scrobbleTimeout.current = setInterval(
+      scrobbleIfThresholdReached,
+      checkInterval,
+    );
+
+    return () => {
+      if (scrobbleTimeout.current) {
+        clearInterval(scrobbleTimeout.current);
+        scrobbleTimeout.current = null;
+      }
+    };
+  }, [song, lastFmSettings, lastFmStatus.isScrobbled]);
 
   // Player control functions - Define handlePlayPause earlier to avoid reference error
   const handlePlayPause = useCallback(() => {
@@ -196,6 +375,10 @@ export const Player = () => {
       if (seekUpdateInterval.current) {
         clearInterval(seekUpdateInterval.current);
       }
+
+      if (scrobbleTimeout.current) {
+        clearInterval(scrobbleTimeout.current);
+      }
     };
   }, []);
 
@@ -205,6 +388,61 @@ export const Player = () => {
       setIsFavourite(favourite);
     }
   }, [song, favourite]);
+
+  // Reset scrobble status when song changes
+  useEffect(() => {
+    setLastFmStatus({
+      isScrobbled: false,
+      isNowPlaying: false,
+      scrobbleTimerStarted: false,
+      error: null,
+      lastFmActive: lastFmStatus.lastFmActive,
+    });
+
+    if (scrobbleTimeout.current) {
+      clearInterval(scrobbleTimeout.current);
+    }
+  }, [song]);
+
+  // Start scrobble timer when playing
+  useEffect(() => {
+    if (
+      isPlaying &&
+      song &&
+      lastFmSettings.enableLastFm &&
+      !lastFmStatus.scrobbleTimerStarted &&
+      isAuthenticated()
+    ) {
+      // Send now playing update to Last.fm
+      console.log("[Last.fm] Sending now playing update");
+      updateNowPlaying(song)
+        .then((success) => {
+          setLastFmStatus((prev) => ({
+            ...prev,
+            isNowPlaying: success,
+            scrobbleTimerStarted: true,
+            error: success ? null : "Failed to update now playing",
+          }));
+          console.log("[Last.fm] Now playing update success:", success);
+        })
+        .catch((err) => {
+          console.error("[Last.fm] Now playing error:", err);
+          setLastFmStatus((prev) => ({
+            ...prev,
+            error: "Error updating now playing",
+          }));
+        });
+
+      // Start scrobble timer
+      handleScrobble();
+    }
+  }, [
+    isPlaying,
+    song,
+    lastFmSettings,
+    lastFmStatus.scrobbleTimerStarted,
+    handleScrobble,
+  ]);
 
   // Initialize or update audio when song changes
   useEffect(() => {
@@ -717,6 +955,44 @@ export const Player = () => {
                   </div>
                 )}
 
+                {/* Last.fm indicator - only show when enabled and active */}
+                {lastFmSettings.enableLastFm &&
+                  lastFmSettings.lastFmSessionKey &&
+                  lastFmStatus.lastFmActive && (
+                    <div className="absolute left-28">
+                      <Tooltip delayDuration={0}>
+                        <TooltipTrigger>
+                          <IconBrandLastfm
+                            stroke={2}
+                            size={14}
+                            className={`w-3.5 text-red-500 ${lastFmStatus.isScrobbled ? "" : lastFmStatus.isNowPlaying ? "animate-pulse" : "opacity-30"}`}
+                          />
+                        </TooltipTrigger>
+                        <TooltipContent side="left" sideOffset={25}>
+                          {lastFmStatus.error ? (
+                            <p className="text-red-500">
+                              Error: {lastFmStatus.error}
+                            </p>
+                          ) : lastFmStatus.isScrobbled ? (
+                            <p>Scrobbled to Last.fm</p>
+                          ) : lastFmStatus.isNowPlaying ? (
+                            <p>
+                              Now playing on Last.fm
+                              <br />
+                              Will scrobble at{" "}
+                              {lastFmSettings.scrobbleThreshold}%
+                            </p>
+                          ) : (
+                            <p>
+                              Will scrobble at{" "}
+                              {lastFmSettings.scrobbleThreshold}%
+                            </p>
+                          )}
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
+                  )}
+
                 {/* Favorite button */}
                 <div className="absolute right-36">
                   <Tooltip delayDuration={0}>
@@ -880,6 +1156,30 @@ export const Player = () => {
                             <span className="opacity-50">Genre:</span>{" "}
                             {metadata?.common?.genre?.[0] || "Unknown"}
                           </p>
+
+                          {lastFmSettings.enableLastFm &&
+                            lastFmStatus.lastFmActive && (
+                              <p className="truncate">
+                                <span className="opacity-50">Last.fm:</span>{" "}
+                                {lastFmStatus.error ? (
+                                  <span className="text-red-500">
+                                    Error: {lastFmStatus.error}
+                                  </span>
+                                ) : lastFmStatus.isScrobbled ? (
+                                  "Scrobbled"
+                                ) : lastFmStatus.isNowPlaying ? (
+                                  <>
+                                    Now playing (will scrobble at{" "}
+                                    {lastFmSettings.scrobbleThreshold}%)
+                                  </>
+                                ) : (
+                                  <>
+                                    Waiting to scrobble at{" "}
+                                    {lastFmSettings.scrobbleThreshold}%
+                                  </>
+                                )}
+                              </p>
+                            )}
                         </div>
                       </div>
                     </DialogContent>

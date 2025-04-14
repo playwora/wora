@@ -144,7 +144,7 @@ export default function Album() {
         </div>
       </div>
       <div className="pt-2">
-        <Songs library={album?.songs} />
+        <Songs library={album?.songs} disableScroll={true} />
       </div>
     </>
   );

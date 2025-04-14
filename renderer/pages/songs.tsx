@@ -204,7 +204,8 @@ export default function AllSongs() {
       // Debounce search to avoid too many requests
       searchTimeout.current = setTimeout(async () => {
         try {
-          // Use the dedicated searchSongs endpoint
+          // Always use the dedicated searchSongs endpoint to search the entire database
+          // This ensures we search all songs regardless of how many have been loaded
           const results = await window.ipc.invoke("searchSongs", term);
 
           if (results && results.length >= 0) {
@@ -229,6 +230,12 @@ export default function AllSongs() {
 
             // Update cache with search results
             songCache.setSearchResults(sortedResults, term);
+
+            // Also update the entire songs collection if appropriate
+            if (processedResults.length > songs.length) {
+              songCache.setAllSongs(processedResults);
+              setSongs(processedResults);
+            }
           } else {
             // If no results, show empty list
             setFilteredSongs([]);
@@ -377,34 +384,27 @@ export default function AllSongs() {
       const fetchAndSortAllSongs = async () => {
         setSearchLoading(true);
         try {
-          // Use cached all songs if available and not stale
-          let allSongs = songCache.getAllSongs();
+          // Always query all songs from the database to ensure comprehensive sorting
+          const allSongs = await window.ipc.invoke("getAllSongs");
 
-          // If the cache doesn't have all songs or is stale, fetch them
-          if (allSongs.length === 0 || songCache.isStale()) {
-            allSongs = await window.ipc.invoke("getAllSongs");
+          if (allSongs && allSongs.length > 0) {
+            // Process and cache all songs
+            const processedSongs = allSongs.map((song) => ({
+              ...song,
+              album: {
+                id: song.album?.id || null,
+                name: song.album?.name || "Unknown Album",
+                artist: song.album?.artist || "Unknown Artist",
+                cover: song.album?.cover || null,
+              },
+            }));
 
-            if (allSongs && allSongs.length > 0) {
-              // Process and cache all songs
-              const processedSongs = allSongs.map((song) => ({
-                ...song,
-                album: {
-                  id: song.album?.id || null,
-                  name: song.album?.name || "Unknown Album",
-                  artist: song.album?.artist || "Unknown Artist",
-                  cover: song.album?.cover || null,
-                },
-              }));
+            // Update the complete song collection in cache
+            songCache.setAllSongs(processedSongs);
 
-              songCache.setAllSongs(processedSongs);
-              allSongs = processedSongs;
-            }
-          }
-
-          if (allSongs.length > 0) {
             // Sort and display all songs with the new sort parameters
             const sortedSongs = songCache.sortSongs(
-              allSongs,
+              processedSongs,
               sortBy,
               sortOrder,
             );
@@ -412,16 +412,16 @@ export default function AllSongs() {
             songCache.setFilteredSongs(sortedSongs);
 
             // Update local state
-            setSongs(allSongs);
+            setSongs(processedSongs);
           } else {
-            // Fall back to sorting just the loaded songs
+            // Fall back to sorting just the loaded songs if the query failed
             const sortedSongs = songCache.sortSongs(songs, sortBy, sortOrder);
             setFilteredSongs(sortedSongs);
             songCache.setFilteredSongs(sortedSongs);
           }
         } catch (error) {
           console.error("Error fetching all songs for sorting:", error);
-          // Fall back to loaded songs
+          // Fall back to sorting just the loaded songs
           const sortedSongs = songCache.sortSongs(songs, sortBy, sortOrder);
           setFilteredSongs(sortedSongs);
           songCache.setFilteredSongs(sortedSongs);
