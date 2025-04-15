@@ -89,14 +89,7 @@ const SongItem = memo(
                 {!imgLoaded && <SongSkeleton />}
                 <Image
                   alt={song.album.name}
-                  src={
-                    song.album.cover
-                      ? song.album.cover.startsWith("/") ||
-                        song.album.cover.includes("://")
-                        ? `${song.album.cover}`
-                        : `wora://${song.album.cover}`
-                      : "/coverArt.png"
-                  }
+                  src={`wora://${song.album.cover}`}
                   fill
                   loading="lazy"
                   className={`object-cover transition-opacity duration-500 ${imgLoaded ? "opacity-100" : "opacity-0"}`}

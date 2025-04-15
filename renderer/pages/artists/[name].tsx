@@ -202,7 +202,7 @@ export default function ArtistView() {
         {/* Songs View */}
         {activeTab === "songs" && (
           <div className="py-4">
-            <Songs library={artist?.songs || []} />
+            <Songs library={artist?.songs || []} disableScroll={true} />
           </div>
         )}
       </div>

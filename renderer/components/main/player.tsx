@@ -746,15 +746,6 @@ export const Player = () => {
     </li>
   );
 
-  // Get song cover URL helper
-  const getSongCoverUrl = (cover) => {
-    if (!cover) return "/coverArt.png";
-
-    return cover.startsWith("/") || cover.includes("://")
-      ? cover
-      : `wora://${cover}`;
-  };
-
   return (
     <div>
       {/* Lyrics overlay */}
@@ -789,7 +780,7 @@ export const Player = () => {
                       <div className="relative min-h-[4.25rem] min-w-[4.25rem] overflow-hidden rounded-lg shadow-lg transition">
                         <Image
                           alt="Album Cover"
-                          src={getSongCoverUrl(song.album?.cover)}
+                          src={`wora://${song?.album.cover}`}
                           fill
                           priority={true}
                           className="object-cover object-center"
@@ -1110,7 +1101,7 @@ export const Player = () => {
                           <div className="relative h-36 w-36 overflow-hidden rounded-xl">
                             <Image
                               alt={song.name || "Album"}
-                              src={getSongCoverUrl(song.album?.cover)}
+                              src={`wora://${song?.album.cover}`}
                               fill
                               className="object-cover"
                               quality={25}

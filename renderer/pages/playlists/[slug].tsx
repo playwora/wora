@@ -263,6 +263,7 @@ export default function Playlist() {
         <Songs
           library={playlist.songs}
           renderAdditionalMenuItems={renderContextMenuItems}
+          disableScroll={true}
         />
       </div>
 
