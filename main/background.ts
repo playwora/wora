@@ -18,6 +18,7 @@ import {
   isSongFavorite,
   removeSongFromPlaylist,
   searchDB,
+  deletePlaylist,
   updatePlaylist,
   updateSettings,
 } from "./helpers/db/connectDB";
@@ -265,6 +266,15 @@ ipcMain.handle("getLibraryStats", async () => {
 ipcMain.handle("getRandomLibraryItems", async () => {
   const libraryItems = await getRandomLibraryItems();
   return libraryItems;
+});
+
+ipcMain.handle("deletePlaylist", async (_, data: any) => {
+  try {
+    const result = await deletePlaylist(data);
+    return result;
+  } catch (error) {
+    throw error;
+  }
 });
 
 ipcMain.handle("updatePlaylist", async (_, data: any) => {
