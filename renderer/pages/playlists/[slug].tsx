@@ -8,6 +8,7 @@ import {
   IconX,
   IconCheck,
   IconStar,
+  IconTrash,
   IconArrowRight,
 } from "@tabler/icons-react";
 import { usePlayer } from "@/context/playerContext";
@@ -54,6 +55,7 @@ export default function Playlist() {
   const [playlist, setPlaylist] = useState<Playlist | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const { setQueueAndPlay } = usePlayer();
 
   useEffect(() => {
@@ -112,6 +114,25 @@ export default function Playlist() {
       </ContextMenuItem>
     </>
   );
+
+  const deletePlaylist = async () => {
+    if (!playlist) return;
+    setLoading(true);
+    try {
+      await window.ipc.invoke("deletePlaylist", { id: playlist.id });
+      toast(
+        <div className="flex w-fit items-center gap-2 text-xs">
+          <IconCheck className="text-green-400" stroke={2} size={16} />
+          Playlist deleted successfully.
+        </div>,
+      );
+      await router.push("/playlists");
+    } catch (err) {
+      toast.error(`Failed to delete playlist: ${err.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const updatePlaylist = (data: z.infer<typeof formSchema>) => {
     setLoading(true);
@@ -272,21 +293,72 @@ export default function Playlist() {
                         </FormItem>
                       )}
                     />
-                    <Button
-                      className="w-fit justify-between text-xs"
-                      type="submit"
-                    >
-                      Update Playlist
-                      {loading ? (
-                        <Spinner className="h-3.5 w-3.5" />
-                      ) : (
-                        <IconArrowRight stroke={2} className="h-3.5 w-3.5" />
-                      )}
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        className="w-fit justify-between text-xs"
+                        type="button"
+                        variant="destructive"
+                        onClick={() => setConfirmDeleteOpen(true)}
+                        disabled={loading}
+                      >
+                        Delete Playlist
+                        {loading ? (
+                          <Spinner className="h-3.5 w-3.5" />
+                        ) : (
+                          <IconTrash stroke={2} className="h-3.5 w-3.5" />
+                        )}
+                      </Button>
+                      <Button
+                        className="w-fit justify-between text-xs"
+                        type="submit"
+                        disabled={loading}
+                      >
+                        Update Playlist
+                        {loading ? (
+                          <Spinner className="h-3.5 w-3.5" />
+                        ) : (
+                          <IconArrowRight stroke={2} className="h-3.5 w-3.5" />
+                        )}
+                      </Button>
+                    </div>
                   </div>
                 </form>
               </Form>
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirm Delete</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this playlist? This action cannot
+              be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button
+              className="w-fit justify-between text-xs"
+              variant="outline"
+              onClick={() => setConfirmDeleteOpen(false)}
+              disabled={loading}
+            >
+              Cancel
+            </Button>
+            <Button
+              className="w-fit justify-between text-xs"
+              variant="destructive"
+              onClick={() => {
+                deletePlaylist();
+                setConfirmDeleteOpen(false);
+                setDialogOpen(false);
+              }}
+              disabled={loading}
+            >
+              {loading ? <Spinner className="h-3.5 w-3.5" /> : "Delete"}
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
