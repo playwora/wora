@@ -262,7 +262,11 @@ export default function Playlist() {
                     <div className="relative h-36 w-36 overflow-hidden rounded-xl">
                       <Image
                         alt="album"
-                        src="/coverArt.png"
+                        src={
+                          playlist && playlist.cover
+                            ? "wora://" + playlist.cover
+                            : "/coverArt.png"
+                        }
                         fill
                         className="object-cover"
                       />

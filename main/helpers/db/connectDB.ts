@@ -157,8 +157,6 @@ export const updatePlaylist = async (data: any) => {
 
   if (data.cover) {
     cover = data.data.cover;
-  } else {
-    cover = "/cover.png";
   }
 
   const playlist = await db
