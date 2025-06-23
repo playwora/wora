@@ -8,6 +8,7 @@ import {
   IconX,
   IconCheck,
   IconStar,
+  IconTrash,
   IconArrowRight,
 } from "@tabler/icons-react";
 import { usePlayer } from "@/context/playerContext";
@@ -56,7 +57,9 @@ export default function Playlist() {
   const [playlist, setPlaylist] = useState<Playlist | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const { setQueueAndPlay } = usePlayer();
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
   });
@@ -71,7 +74,6 @@ export default function Playlist() {
   // Load playlist data when the slug changes
   useEffect(() => {
     if (!router.query.slug) return;
-
     fetchPlaylistData();
   }, [router.query.slug]);
 
@@ -105,19 +107,16 @@ export default function Playlist() {
 
   const playPlaylist = (shuffle = false) => {
     if (!playlist?.songs?.length) return;
-
     setQueueAndPlay(playlist.songs, 0, shuffle);
   };
 
   const removeSongFromPlaylist = async (songId: number) => {
     if (!playlist) return;
-
     try {
       const response = await window.ipc.invoke("removeSongFromPlaylist", {
         playlistId: playlist.id,
         songId,
       });
-
       if (response) {
         toast(
           <div className="flex w-fit items-center gap-2 text-xs">
@@ -125,8 +124,6 @@ export default function Playlist() {
             Song removed from playlist
           </div>,
         );
-
-        // Refresh playlist data
         fetchPlaylistData();
       }
     } catch (error) {
@@ -136,19 +133,15 @@ export default function Playlist() {
 
   const updatePlaylist = async (data: z.infer<typeof formSchema>) => {
     if (!playlist) return;
-
     setLoading(true);
-
     try {
       const response = await window.ipc.invoke("updatePlaylist", {
         id: playlist.id,
         data,
       });
-
       if (response) {
         await fetchPlaylistData();
         setDialogOpen(false);
-
         toast(
           <div className="flex w-fit items-center gap-2 text-xs">
             <IconCheck className="text-green-400" stroke={2} size={16} />
@@ -164,6 +157,25 @@ export default function Playlist() {
           Failed to update playlist
         </div>,
       );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const deletePlaylist = async () => {
+    if (!playlist) return;
+    setLoading(true);
+    try {
+      await window.ipc.invoke("deletePlaylist", { id: playlist.id });
+      toast(
+        <div className="flex w-fit items-center gap-2 text-xs">
+          <IconCheck className="text-green-400" stroke={2} size={16} />
+          Playlist deleted successfully.
+        </div>,
+      );
+      await router.push("/playlists");
+    } catch (err) {
+      toast.error(`Failed to delete playlist: ${err.message}`);
     } finally {
       setLoading(false);
     }
@@ -204,7 +216,6 @@ export default function Playlist() {
             className="object-cover object-center blur-xl gradient-mask-b-10"
           />
         )}
-
         <div className="absolute bottom-6 left-6">
           <div className="flex items-end gap-4">
             {/* Album cover */}
@@ -223,7 +234,6 @@ export default function Playlist() {
                 className="scale-[1.01] object-cover"
               />
             </div>
-
             {/* Playlist info and actions */}
             <div className="flex flex-col gap-4">
               <div>
@@ -232,7 +242,6 @@ export default function Playlist() {
                   {playlist.description}
                 </p>
               </div>
-
               <div className="flex gap-2">
                 <Button onClick={() => playPlaylist(false)} className="w-fit">
                   <IconPlayerPlay
@@ -242,11 +251,9 @@ export default function Playlist() {
                   />{" "}
                   Play
                 </Button>
-
                 <Button className="w-fit" onClick={() => playPlaylist(true)}>
                   <IconArrowsShuffle2 stroke={2} size={16} /> Shuffle
                 </Button>
-
                 {playlist.id !== 1 && (
                   <Button className="w-fit" onClick={() => setDialogOpen(true)}>
                     <IconStar stroke={2} size={16} /> Edit
@@ -257,7 +264,6 @@ export default function Playlist() {
           </div>
         </div>
       </div>
-
       {/* Song list */}
       <div className="pt-2">
         <Songs
@@ -266,7 +272,6 @@ export default function Playlist() {
           disableScroll={true}
         />
       </div>
-
       {/* Edit playlist dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
@@ -274,7 +279,6 @@ export default function Playlist() {
             <DialogTitle>Update Playlist</DialogTitle>
             <DialogDescription>Update your existing playlist</DialogDescription>
           </DialogHeader>
-
           <Form {...form}>
             <form
               onSubmit={form.handleSubmit(updatePlaylist)}
@@ -295,7 +299,6 @@ export default function Playlist() {
                   />
                 </div>
               </div>
-
               {/* Form inputs */}
               <div className="flex h-full w-full flex-col items-end gap-4">
                 <FormField
@@ -310,7 +313,6 @@ export default function Playlist() {
                     </FormItem>
                   )}
                 />
-
                 <FormField
                   control={form.control}
                   name="description"
@@ -323,22 +325,70 @@ export default function Playlist() {
                     </FormItem>
                   )}
                 />
-
-                <Button
-                  className="w-fit justify-between text-xs"
-                  type="submit"
-                  disabled={loading}
-                >
-                  Update Playlist
-                  {loading ? (
-                    <Spinner className="h-3.5 w-3.5" />
-                  ) : (
-                    <IconArrowRight stroke={2} className="h-3.5 w-3.5" />
-                  )}
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    className="w-fit justify-between text-xs"
+                    type="button"
+                    variant="destructive"
+                    onClick={() => setConfirmDeleteOpen(true)}
+                    disabled={loading}
+                  >
+                    Delete Playlist
+                    {loading ? (
+                      <Spinner className="h-3.5 w-3.5" />
+                    ) : (
+                      <IconTrash stroke={2} className="h-3.5 w-3.5" />
+                    )}
+                  </Button>
+                  <Button
+                    className="w-fit justify-between text-xs"
+                    type="submit"
+                    disabled={loading}
+                  >
+                    Update Playlist
+                    {loading ? (
+                      <Spinner className="h-3.5 w-3.5" />
+                    ) : (
+                      <IconArrowRight stroke={2} className="h-3.5 w-3.5" />
+                    )}
+                  </Button>
+                </div>
               </div>
             </form>
           </Form>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirm Delete</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this playlist? This action cannot
+              be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button
+              className="w-fit justify-between text-xs"
+              variant="outline"
+              onClick={() => setConfirmDeleteOpen(false)}
+              disabled={loading}
+            >
+              Cancel
+            </Button>
+            <Button
+              className="w-fit justify-between text-xs"
+              variant="destructive"
+              onClick={async () => {
+                await deletePlaylist();
+                setConfirmDeleteOpen(false);
+                setDialogOpen(false);
+              }}
+              disabled={loading}
+            >
+              {loading ? <Spinner className="h-3.5 w-3.5" /> : "Delete"}
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </>

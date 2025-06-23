@@ -24,6 +24,7 @@ import {
   searchDB,
   searchSongs,
   updateLastFmSettings,
+  deletePlaylist,
   updatePlaylist,
   updateSettings,
   getSongs,
@@ -372,6 +373,15 @@ ipcMain.handle("createPlaylist", async (_, data: any) => {
   // Invalidate cache when data changes
   dataCache.lastUpdated = 0;
   return playlist;
+});
+
+ipcMain.handle("deletePlaylist", async (_, data: any) => {
+  try {
+    const result = await deletePlaylist(data);
+    return result;
+  } catch (error) {
+    throw error;
+  }
 });
 
 ipcMain.handle("updatePlaylist", async (_, data: any) => {
