@@ -1,4 +1,5 @@
-import React, { useEffect, useRef, useState } from "react";
+"use client";
+import React, { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Label } from "@/components/ui/label";
@@ -31,7 +32,6 @@ const formSchema = z.object({
     message: "Playlist name must be at least 2 characters.",
   }),
   description: z.string().optional(),
-  playlistCover: z.any().optional(),
 });
 
 export default function Playlists() {
@@ -40,28 +40,24 @@ export default function Playlists() {
   const [previewUrl, setPreviewUrl] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [fileList, setFileList] = useState<FileList | null>(null);
 
-  // Fetch playlists on component mount
   useEffect(() => {
     window.ipc.invoke("getAllPlaylists").then((response) => {
       setPlaylists(response);
     });
 
-    // Listen for reset event from main process
     const resetListener = window.ipc.on("resetPlaylistsState", () => {
-      // Refresh playlists data
       window.ipc.invoke("getAllPlaylists").then((response) => {
         setPlaylists(response);
       });
     });
 
     return () => {
-      // Clean up event listener
       resetListener();
     };
   }, []);
 
-  // Clean up object URLs when component unmounts
   useEffect(() => {
     return () => {
       if (previewUrl.startsWith("blob:")) {
@@ -75,13 +71,8 @@ export default function Playlists() {
     let playlistCoverPath = null;
 
     try {
-      // Only process cover image if one was selected
-      if (
-        data.playlistCover &&
-        data.playlistCover instanceof FileList &&
-        data.playlistCover.length > 0
-      ) {
-        const file = data.playlistCover[0];
+      if (fileList && fileList.length > 0) {
+        const file = fileList[0];
         const fileData = await file.arrayBuffer();
 
         playlistCoverPath = await window.ipc.invoke("uploadPlaylistCover", {
@@ -97,6 +88,8 @@ export default function Playlists() {
       });
 
       setDialogOpen(false);
+      setPreviewUrl("");
+      setFileList(null);
       router.push(`/playlists/${response.lastInsertRowid}`);
     } catch (error) {
       console.error("Error creating playlist:", error);
@@ -189,31 +182,19 @@ export default function Playlists() {
                     />
                   </div>
                 </Label>
-
-                <FormField
-                  control={form.control}
-                  name="playlistCover"
-                  render={({ field: { onChange, ...rest } }) => (
-                    <FormItem hidden className="w-full">
-                      <FormControl>
-                        <Input
-                          id="playlistCover"
-                          type="file"
-                          accept="image/*"
-                          onChange={(e) => {
-                            const files = e.target.files;
-                            if (files?.length) {
-                              onChange(files);
-                              const objectUrl = URL.createObjectURL(files[0]);
-                              setPreviewUrl(objectUrl);
-                            }
-                          }}
-                          {...rest}
-                        />
-                      </FormControl>
-                      <FormMessage className="text-xs" />
-                    </FormItem>
-                  )}
+                <input
+                  id="playlistCover"
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const files = e.target.files;
+                    if (files?.length) {
+                      setFileList(files);
+                      const objectUrl = URL.createObjectURL(files[0]);
+                      setPreviewUrl(objectUrl);
+                    }
+                  }}
                 />
               </div>
 

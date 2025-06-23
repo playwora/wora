@@ -375,13 +375,8 @@ ipcMain.handle("createPlaylist", async (_, data: any) => {
   return playlist;
 });
 
-ipcMain.handle("deletePlaylist", async (_, data: any) => {
-  try {
-    const result = await deletePlaylist(data);
-    return result;
-  } catch (error) {
-    throw error;
-  }
+ipcMain.handle("deletePlaylist", async (_, data: { id: number; coverPath?: string }) => {
+  return deletePlaylist(data);
 });
 
 ipcMain.handle("updatePlaylist", async (_, data: any) => {
