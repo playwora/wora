@@ -165,7 +165,7 @@ const SongItem = memo(
                   key={playlist.id}
                   onClick={() => addSongToPlaylist(playlist.id, song.id)}
                 >
-                  <p className="w-full text-nowrap gradient-mask-r-70">
+                  <p className="w-full mask-r-from-70% text-nowrap">
                     {playlist.name}
                   </p>
                 </ContextMenuItem>

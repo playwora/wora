@@ -5,9 +5,7 @@
   "devCommand": "npm run dev",
   "installCommand": "npm install",
   "regions": ["iad1"],
-  "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/$1" }
-  ],
+  "rewrites": [{ "source": "/api/(.*)", "destination": "/api/$1" }],
   "env": {
     "VERCEL": "true"
   }

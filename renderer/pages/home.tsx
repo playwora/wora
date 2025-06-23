@@ -83,57 +83,55 @@ export default function Home() {
 
   return (
     <div className="flex flex-col gap-8">
-      <div className="flex flex-col gap-8">
-        <div className="flex flex-row items-center justify-between">
-          <div className="flex flex-col">
-            <div className="mt-4 text-lg font-medium leading-6">Home</div>
-            <div className="opacity-50">
-              The coolest music library in the world.
-            </div>
+      <div className="flex flex-row items-center justify-between">
+        <div className="flex flex-col">
+          <div className="mt-4 text-lg leading-6 font-medium">Home</div>
+          <div className="opacity-50">
+            The coolest music library in the world.
           </div>
-          <Button
-            onClick={handleShuffleAllSongs}
-            className="flex items-center gap-2"
-            disabled={isLoading}
-          >
-            <IconArrowsShuffle2 stroke={2} size={16} />
-            Shuffle All Songs
+        </div>
+        <Button
+          onClick={handleShuffleAllSongs}
+          className="flex items-center gap-2"
+          disabled={isLoading}
+        >
+          <IconArrowsShuffle2 stroke={2} size={16} />
+          Shuffle All Songs
+        </Button>
+      </div>
+      {library?.albums && library.albums.length > 5 && (
+        <Carousel
+          className="relative w-[89vw]"
+          opts={{
+            loop: true,
+          }}
+        >
+          <CarouselPrevious className="absolute left-0 z-50 my-0" />
+          <div className="w-full mask-x-from-70%">
+            <CarouselContent className="-ml-8">
+              {library.albums.map((album: any, index: number) => (
+                <CarouselItem key={index} className="basis-1/5 pl-8">
+                  <AlbumCard album={album} />
+                </CarouselItem>
+              ))}
+            </CarouselContent>
+          </div>
+          <CarouselNext className="absolute right-0 z-50 my-0" />
+        </Carousel>
+      )}
+      <div>
+        <div className="mb-2 flex items-center justify-between">
+          <h3 className="text-sm font-medium">Recently Added</h3>
+          <Button variant="ghost" className="text-xs" asChild>
+            <Link href="/songs">View All</Link>
           </Button>
         </div>
-        {library?.albums && library.albums.length > 5 && (
-          <Carousel
-            className="relative w-[88vw]"
-            opts={{
-              loop: true,
-            }}
-          >
-            <CarouselPrevious className="absolute left-0 z-50 my-0" />
-            <div className="w-full gradient-mask-r-80-d">
-              <CarouselContent className="-ml-8">
-                {library.albums.map((album: any, index: number) => (
-                  <CarouselItem key={index} className="basis-1/5 pl-8">
-                    <AlbumCard album={album} />
-                  </CarouselItem>
-                ))}
-              </CarouselContent>
-            </div>
-            <CarouselNext className="absolute right-0 z-50 my-0" />
-          </Carousel>
-        )}
-        <div>
-          <div className="mb-2 flex items-center justify-between">
-            <h3 className="text-sm font-medium">Recently Added</h3>
-            <Button variant="ghost" className="text-xs" asChild>
-              <Link href="/songs">View All</Link>
-            </Button>
-          </div>
-          <Songs
-            library={library?.songs}
-            ref={songsRef}
-            limit={5}
-            disableScroll={true}
-          />
-        </div>
+        <Songs
+          library={library?.songs}
+          ref={songsRef}
+          limit={5}
+          disableScroll={true}
+        />
       </div>
     </div>
   );

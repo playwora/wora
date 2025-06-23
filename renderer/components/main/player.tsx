@@ -669,7 +669,7 @@ export const Player = () => {
       <div className="h-utility w-full max-w-3xl px-6 pt-6">
         <Tabs
           defaultValue="queue"
-          className="flex h-full w-full flex-col gap-4 gradient-mask-b-70"
+          className="flex h-full w-full flex-col gap-4 mask-b-from-70%"
         >
           <TabsList className="w-full">
             <TabsTrigger value="queue" className="w-full gap-2">
@@ -683,7 +683,7 @@ export const Player = () => {
           {/* Queue tab content */}
           <TabsContent
             value="queue"
-            className="no-scrollbar flex-grow overflow-y-auto pb-64"
+            className="no-scrollbar grow overflow-y-auto pb-64"
           >
             <ul className="flex flex-col gap-4">
               {queue.slice(currentIndex + 1).map((song) => (
@@ -701,7 +701,7 @@ export const Player = () => {
           {/* History tab content */}
           <TabsContent
             value="history"
-            className="no-scrollbar flex-grow overflow-y-auto pb-64"
+            className="no-scrollbar grow overflow-y-auto pb-64"
           >
             <ul className="flex flex-col gap-4">
               {[...history].reverse().map((song) => (
@@ -749,7 +749,7 @@ export const Player = () => {
   return (
     <div>
       {/* Lyrics overlay */}
-      <div className="absolute right-0 top-0 w-full">
+      <div className="absolute top-0 right-0 w-full">
         {showLyrics && lyrics && (
           <Lyrics
             lyrics={parseLyrics(lyrics)}
@@ -761,7 +761,7 @@ export const Player = () => {
       </div>
 
       {/* Queue panel */}
-      <div className="!absolute right-0 top-0 w-96">
+      <div className="!absolute top-0 right-0 w-96">
         {showQueue && <QueuePanel />}
       </div>
 
@@ -777,7 +777,7 @@ export const Player = () => {
                     <Link
                       href={song.album?.id ? `/albums/${song.album.id}` : "#"}
                     >
-                      <div className="relative min-h-[4.25rem] min-w-[4.25rem] overflow-hidden rounded-lg shadow-lg transition">
+                      <div className="relative min-h-17 min-w-17 overflow-hidden rounded-lg shadow-lg transition">
                         <Image
                           alt="Album Cover"
                           src={`wora://${song?.album.cover}`}
@@ -818,7 +818,7 @@ export const Player = () => {
                   </ContextMenuContent>
                 </ContextMenu>
               ) : (
-                <div className="relative min-h-[4.25rem] min-w-[4.25rem] overflow-hidden rounded-lg shadow-lg">
+                <div className="relative min-h-17 min-w-17 overflow-hidden rounded-lg shadow-lg">
                   <Image
                     alt="Album Cover"
                     src="/coverArt.png"
@@ -854,25 +854,25 @@ export const Player = () => {
             </div>
 
             {/* Center - Playback controls */}
-            <div className="absolute left-0 right-0 mx-auto flex h-full w-2/4 flex-col items-center justify-between gap-4">
+            <div className="absolute right-0 left-0 mx-auto flex h-full w-2/4 flex-col items-center justify-between gap-4">
               {/* Playback buttons */}
               <div className="flex h-full w-full items-center justify-center gap-8">
                 {/* Shuffle button */}
                 <Button
                   variant="ghost"
                   onClick={toggleShuffle}
-                  className="relative !opacity-100"
+                  className="relative opacity-100!"
                 >
                   {!shuffle ? (
                     <IconArrowsShuffle2
                       stroke={2}
                       size={16}
-                      className="!opacity-30 hover:!opacity-100"
+                      className="opacity-30! hover:opacity-100!"
                     />
                   ) : (
                     <div>
                       <IconArrowsShuffle2 stroke={2} size={16} />
-                      <div className="absolute -top-2 left-0 right-0 mx-auto h-[1.5px] w-2/3 rounded-full bg-black dark:bg-white"></div>
+                      <div className="absolute -top-2 right-0 left-0 mx-auto h-[1.5px] w-2/3 rounded-full bg-black dark:bg-white"></div>
                     </div>
                   )}
                 </Button>
@@ -913,18 +913,18 @@ export const Player = () => {
                 <Button
                   variant="ghost"
                   onClick={toggleRepeat}
-                  className="relative !opacity-100"
+                  className="relative opacity-100!"
                 >
                   {!repeat ? (
                     <IconRepeat
                       stroke={2}
                       size={15}
-                      className="!opacity-30 hover:!opacity-100"
+                      className="opacity-30! hover:opacity-100!"
                     />
                   ) : (
                     <div>
                       <IconRepeat stroke={2} size={15} />
-                      <div className="absolute -top-2 left-0 right-0 mx-auto h-[1.5px] w-2/3 rounded-full bg-black dark:bg-white"></div>
+                      <div className="absolute -top-2 right-0 left-0 mx-auto h-[1.5px] w-2/3 rounded-full bg-black dark:bg-white"></div>
                     </div>
                   )}
                 </Button>
@@ -990,7 +990,7 @@ export const Player = () => {
                     <TooltipTrigger>
                       <Button
                         variant="ghost"
-                        className="!opacity-100"
+                        className="opacity-100!"
                         onClick={() => toggleFavourite(song?.id)}
                         disabled={!song}
                       >
@@ -1033,13 +1033,13 @@ export const Player = () => {
                 <Button
                   variant="ghost"
                   onClick={toggleMute}
-                  className="!opacity-100"
+                  className="opacity-100!"
                 >
                   {!isMuted ? (
                     <IconVolume
                       stroke={2}
                       size={17.5}
-                      className="wora-transition !opacity-30 hover:!opacity-100"
+                      className="wora-transition opacity-30! hover:opacity-100!"
                     />
                   ) : (
                     <IconVolumeOff

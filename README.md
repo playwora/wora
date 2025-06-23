@@ -45,28 +45,28 @@ A bit simpler process would be to download the latest build through [here](https
 
 1. **Clone the repository:**
 
-    ```sh
-    git clone https://github.com/hiaaryan/wora.git
-    cd wora
-    ```
+   ```sh
+   git clone https://github.com/hiaaryan/wora.git
+   cd wora
+   ```
 
 2. **Install the dependencies:**
 
-    ```sh
-    bun install
-    ```
+   ```sh
+   bun install
+   ```
 
-4. **Start the application:**
+3. **Start the application:**
 
-    ```sh
-    bun run dev
-    ```
+   ```sh
+   bun run dev
+   ```
 
-5. **Build the application**
+4. **Build the application**
 
-    ```sh
-    bun run build
-    ```
+   ```sh
+   bun run build
+   ```
 
 ## 🤝 Contributing
 

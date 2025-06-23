@@ -55,12 +55,10 @@ const Navbar = () => {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
-  // Only show mounted components to prevent hydration errors
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  // Define navigation links
   const navLinks: NavLink[] = [
     {
       href: "/home",
@@ -104,51 +102,38 @@ const Navbar = () => {
     }
   };
 
-  // Check if current path matches the href (including base path match)
   const isActive = (href: string): boolean => {
     if (href === "/home" && router.pathname === "/") {
       return true;
     }
 
-    // Check for exact match or if it's a subpath
     return (
       router.pathname === href ||
       (href !== "/home" && router.pathname.startsWith(href))
     );
   };
 
-  // Handle navigation with page state reset when clicking active page
   const handleNavigation = useCallback(
     (href: string, e: React.MouseEvent) => {
-      // If we're on this exact page or a subpage of it
       if (isActive(href)) {
         e.preventDefault();
 
-        // Scroll to top
         window.scrollTo(0, 0);
 
-        // If we're on a subpath (e.g., /albums/[slug]), navigate to the main path
         if (router.pathname !== href) {
           router.push(href);
           return;
         }
 
-        // If we're already on the exact page, just reset state
         if (href === "/albums") {
-          // Reset albums page state
           window.ipc.send("resetAlbumsPageState", null);
         } else if (href === "/songs") {
-          // Reset songs page state
           window.ipc.send("resetSongsPageState", null);
         } else if (href === "/playlists") {
-          // Reset playlists page state
           window.ipc.send("resetPlaylistsPageState", null);
         } else if (href === "/home") {
-          // Reset home page state
           window.ipc.send("resetHomePageState", null);
         }
-
-        // Removed router.replace(router.asPath) to allow smooth transitions
       }
     },
     [router],
@@ -226,23 +211,6 @@ const Navbar = () => {
     });
   }, []);
 
-  // If not mounted yet, render a placeholder to avoid hydration issues
-  if (!mounted) {
-    return (
-      <div className="flex h-full flex-col items-center justify-center gap-10">
-        <div className="h-8 w-8 rounded-full bg-neutral-200 dark:bg-neutral-800" />
-        <div className="wora-border flex w-[4.5rem] flex-col items-center gap-10 rounded-2xl p-8">
-          {[1, 2, 3, 4, 5].map((i) => (
-            <div
-              key={i}
-              className="h-10 w-10 rounded-md bg-neutral-200 dark:bg-neutral-800"
-            />
-          ))}
-        </div>
-      </div>
-    );
-  }
-
   return (
     <>
       <div className="flex h-full flex-col items-center justify-center gap-10">
@@ -261,16 +229,13 @@ const Navbar = () => {
               <p>{settings && settings.name ? settings.name : "Wora User"}</p>
             </TooltipContent>
           </Tooltip>
-          <div className="wora-border flex w-[4.5rem] flex-col items-center gap-10 rounded-2xl p-8">
-            {/* Navigation Links */}
+          <div className="wora-border flex w-18 flex-col items-center gap-10 rounded-2xl p-8">
             {navLinks.map((link) => (
               <Tooltip key={link.href} delayDuration={0}>
                 <TooltipTrigger>
                   <Button
-                    variant={isActive(link.href) ? "default" : "ghost"}
-                    className={
-                      isActive(link.href) ? "dark:bg.white/10 bg-black/10" : ""
-                    }
+                    variant="ghost"
+                    className={isActive(link.href) && "opacity-100"}
                   >
                     <Link
                       href={link.href}
@@ -287,7 +252,6 @@ const Navbar = () => {
               </Tooltip>
             ))}
 
-            {/* Search Button */}
             <Tooltip delayDuration={0}>
               <TooltipTrigger>
                 <Button variant="ghost" onClick={openSearch}>
@@ -334,7 +298,7 @@ const Navbar = () => {
                     onSelect={() => handleItemClick(item)}
                     className="text-black dark:text-white"
                   >
-                    <div className="flex h-full w-full items-center gap-2.5 gradient-mask-r-70">
+                    <div className="flex h-full w-full items-center gap-2.5 mask-r-from-70%">
                       {(item.type === "Playlist" || item.type === "Album") && (
                         <div className="relative h-12 w-12 overflow-hidden rounded-lg shadow-xl transition duration-300">
                           <Image
@@ -351,7 +315,7 @@ const Navbar = () => {
                         </div>
                       )}
                       <div>
-                        <p className="w-full overflow-hidden text-nowrap text-xs">
+                        <p className="w-full overflow-hidden text-xs text-nowrap">
                           {item.name}
                           <span className="ml-1 opacity-50">({item.type})</span>
                         </p>
@@ -369,7 +333,7 @@ const Navbar = () => {
               </CommandGroup>
             ) : (
               <div className="flex h-[325px] w-full items-center justify-center text-xs">
-                <div className="dark:bg.white/10 ml-2 rounded-lg bg-black/5 px-1.5 py-1 shadow-sm">
+                <div className="dark:bg.white/10 ml-2 rounded-lg bg-black/5 px-1.5 py-1 shadow-xs">
                   ⌘ / Ctrl + F
                 </div>
               </div>
