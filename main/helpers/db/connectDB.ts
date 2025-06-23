@@ -245,8 +245,10 @@ export const createPlaylist = async (data: any) => {
 
 export const deletePlaylist = async (data: { id: number }) => {
   await db.transaction(async (tx) => {
+    // Remove all links in playlistSongs
     await tx.delete(playlistSongs).where(eq(playlistSongs.playlistId, data.id));
 
+    // Now delete the playlist
     const result = await tx.delete(playlists).where(eq(playlists.id, data.id));
     if ("changes" in result && result.changes === 0) {
       throw new Error(`Playlist ${data.id} not found`);
