@@ -3,6 +3,7 @@ import { FixedSizeGrid as Grid } from "react-window";
 import AutoSizer from "react-virtualized-auto-sizer";
 import Image from "next/image";
 import Link from "next/link";
+import AlbumCard from "./album";
 
 // Updated Album type to match what's used in albums.tsx
 type Album = {
@@ -341,43 +342,7 @@ const VirtualizedAlbumGrid: React.FC<VirtualizedAlbumGridProps> = ({
     }
 
     // Default grid view
-    return (
-      <div style={style} className="p-2">
-        <Link
-          href={`/albums/${album.id}`}
-          className="group/album flex flex-col"
-        >
-          <div className="relative aspect-square w-full overflow-hidden rounded-lg shadow-md transition-all duration-200 hover:shadow-xl">
-            {!imgLoaded && <AlbumSkeleton />}
-            <Image
-              alt={album.name}
-              src={imageSrc}
-              fill
-              loading="lazy"
-              className={`object-cover transition-opacity duration-1000 group-hover/album:scale-105 ${imgLoaded ? "opacity-100" : "opacity-0"}`}
-              sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, 20vw"
-              quality={50}
-              onLoad={() => setImgLoaded(true)}
-            />
-          </div>
-          <div className="mt-3 flex flex-col">
-            <p className="truncate font-medium" title={album.name}>
-              {album.name}
-            </p>
-            <div className="flex items-center justify-between">
-              <button
-                onClick={(e) => onArtistClick(album.artist, e)}
-                className="truncate text-start text-sm opacity-60 hover:underline hover:opacity-100"
-                title={album.artist}
-              >
-                {album.artist}
-              </button>
-              <span className="shrink-0 text-xs opacity-50">{duration}</span>
-            </div>
-          </div>
-        </Link>
-      </div>
-    );
+    return <AlbumCard album={album} />;
   };
 
   return (

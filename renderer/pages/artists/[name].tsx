@@ -94,7 +94,7 @@ export default function ArtistView() {
           src={getArtistCover()}
           fill
           loading="lazy"
-          className="object-cover object-center blur-xl gradient-mask-b-10"
+          className="object-cover object-center blur-xl"
         />
         <div className="absolute bottom-6 left-6">
           <div className="flex items-end gap-4">
@@ -119,7 +119,7 @@ export default function ArtistView() {
               <div className="flex gap-2">
                 <button
                   onClick={playAllSongs}
-                  className="flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-medium text-black hover:bg-opacity-90 dark:bg-white dark:text-black"
+                  className="hover:bg-opacity-90 flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-medium text-black dark:bg-white dark:text-black"
                 >
                   <IconPlayerPlay
                     className="fill-black dark:fill-black"

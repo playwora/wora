@@ -663,13 +663,12 @@ export const Player = () => {
     );
   }
 
-  // Queue/History display component (extracted for readability)
   const QueuePanel = () => (
     <div className="wora-border relative h-full w-full rounded-2xl bg-white/70 backdrop-blur-xl dark:bg-black/70">
       <div className="h-utility w-full max-w-3xl px-6 pt-6">
         <Tabs
           defaultValue="queue"
-          className="flex h-full w-full flex-col gap-4 gradient-mask-b-70"
+          className="flex h-full w-full flex-col gap-4 mask-b-from-70%"
         >
           <TabsList className="w-full">
             <TabsTrigger value="queue" className="w-full gap-2">
@@ -680,10 +679,9 @@ export const Player = () => {
             </TabsTrigger>
           </TabsList>
 
-          {/* Queue tab content */}
           <TabsContent
             value="queue"
-            className="no-scrollbar flex-grow overflow-y-auto pb-64"
+            className="no-scrollbar grow overflow-y-auto pb-64"
           >
             <ul className="flex flex-col gap-4">
               {queue.slice(currentIndex + 1).map((song) => (
@@ -701,7 +699,7 @@ export const Player = () => {
           {/* History tab content */}
           <TabsContent
             value="history"
-            className="no-scrollbar flex-grow overflow-y-auto pb-64"
+            className="no-scrollbar grow overflow-y-auto pb-64"
           >
             <ul className="flex flex-col gap-4">
               {[...history].reverse().map((song) => (
@@ -720,7 +718,6 @@ export const Player = () => {
     </div>
   );
 
-  // Helper component for song items in queue/history
   const SongListItem = ({ song }) => (
     <li className="flex w-full items-center gap-4 overflow-hidden">
       <div className="relative min-h-14 min-w-14 overflow-hidden rounded-lg shadow-lg">
@@ -748,8 +745,7 @@ export const Player = () => {
 
   return (
     <div>
-      {/* Lyrics overlay */}
-      <div className="absolute right-0 top-0 w-full">
+      <div className="absolute top-0 right-0 w-full">
         {showLyrics && lyrics && (
           <Lyrics
             lyrics={parseLyrics(lyrics)}
@@ -760,16 +756,13 @@ export const Player = () => {
         )}
       </div>
 
-      {/* Queue panel */}
-      <div className="!absolute right-0 top-0 w-96">
+      <div className="!absolute top-0 right-0 w-96">
         {showQueue && <QueuePanel />}
       </div>
 
-      {/* Main player UI */}
       <div className="wora-border h-28 w-full overflow-hidden rounded-2xl p-6">
         <div className="relative flex h-full w-full items-center">
           <TooltipProvider>
-            {/* Left side - Song info */}
             <div className="absolute left-0 flex w-1/4 items-center justify-start gap-4 overflow-hidden">
               {song ? (
                 <ContextMenu>
@@ -777,7 +770,7 @@ export const Player = () => {
                     <Link
                       href={song.album?.id ? `/albums/${song.album.id}` : "#"}
                     >
-                      <div className="relative min-h-[4.25rem] min-w-[4.25rem] overflow-hidden rounded-lg shadow-lg transition">
+                      <div className="relative min-h-17 min-w-17 overflow-hidden rounded-lg shadow-lg transition">
                         <Image
                           alt="Album Cover"
                           src={`wora://${song?.album.cover}`}
@@ -789,7 +782,6 @@ export const Player = () => {
                     </Link>
                   </ContextMenuTrigger>
 
-                  {/* Song context menu */}
                   <ContextMenuContent className="w-64">
                     <Link href={`/albums/${song.album?.id}`}>
                       <ContextMenuItem className="flex items-center gap-2">
@@ -818,7 +810,7 @@ export const Player = () => {
                   </ContextMenuContent>
                 </ContextMenu>
               ) : (
-                <div className="relative min-h-[4.25rem] min-w-[4.25rem] overflow-hidden rounded-lg shadow-lg">
+                <div className="relative min-h-17 min-w-17 overflow-hidden rounded-lg shadow-lg">
                   <Image
                     alt="Album Cover"
                     src="/coverArt.png"
@@ -829,7 +821,6 @@ export const Player = () => {
                 </div>
               )}
 
-              {/* Song title and artist */}
               <div className="w-full">
                 <p className="truncate text-sm font-medium">
                   {song ? song.name : "Echoes of Emptiness"}
@@ -838,13 +829,6 @@ export const Player = () => {
                   href={
                     song ? `/artists/${encodeURIComponent(song.artist)}` : "#"
                   }
-                  onClick={(e) => {
-                    if (!song) return;
-                    e.preventDefault();
-                    // Use router to navigate without stopping song playback
-                    const router = require("next/router").default;
-                    router.push(`/artists/${encodeURIComponent(song.artist)}`);
-                  }}
                 >
                   <p className="cursor-pointer truncate opacity-50 hover:underline hover:opacity-80">
                     {song ? song.artist : "The Void Ensemble"}
@@ -853,31 +837,27 @@ export const Player = () => {
               </div>
             </div>
 
-            {/* Center - Playback controls */}
-            <div className="absolute left-0 right-0 mx-auto flex h-full w-2/4 flex-col items-center justify-between gap-4">
-              {/* Playback buttons */}
+            <div className="absolute right-0 left-0 mx-auto flex h-full w-2/4 flex-col items-center justify-between gap-4">
               <div className="flex h-full w-full items-center justify-center gap-8">
-                {/* Shuffle button */}
                 <Button
                   variant="ghost"
                   onClick={toggleShuffle}
-                  className="relative !opacity-100"
+                  className="relative opacity-100!"
                 >
                   {!shuffle ? (
                     <IconArrowsShuffle2
                       stroke={2}
                       size={16}
-                      className="!opacity-30 hover:!opacity-100"
+                      className="opacity-30! hover:opacity-100!"
                     />
                   ) : (
                     <div>
                       <IconArrowsShuffle2 stroke={2} size={16} />
-                      <div className="absolute -top-2 left-0 right-0 mx-auto h-[1.5px] w-2/3 rounded-full bg-black dark:bg-white"></div>
+                      <div className="absolute -top-2 right-0 left-0 mx-auto h-[1.5px] w-2/3 rounded-full bg-black dark:bg-white"></div>
                     </div>
                   )}
                 </Button>
 
-                {/* Previous track button */}
                 <Button variant="ghost" onClick={previousSong}>
                   <IconPlayerSkipBack
                     stroke={2}
@@ -886,7 +866,6 @@ export const Player = () => {
                   />
                 </Button>
 
-                {/* Play/pause button */}
                 <Button variant="ghost" onClick={handlePlayPause}>
                   {!isPlaying ? (
                     <IconPlayerPlay
@@ -901,7 +880,6 @@ export const Player = () => {
                   )}
                 </Button>
 
-                {/* Next track button */}
                 <Button variant="ghost" onClick={nextSong}>
                   <IconPlayerSkipForward
                     stroke={2}
@@ -909,44 +887,42 @@ export const Player = () => {
                   />
                 </Button>
 
-                {/* Repeat button */}
                 <Button
                   variant="ghost"
                   onClick={toggleRepeat}
-                  className="relative !opacity-100"
+                  className="relative opacity-100!"
                 >
                   {!repeat ? (
                     <IconRepeat
                       stroke={2}
                       size={15}
-                      className="!opacity-30 hover:!opacity-100"
+                      className="opacity-30! hover:opacity-100!"
                     />
                   ) : (
                     <div>
                       <IconRepeat stroke={2} size={15} />
-                      <div className="absolute -top-2 left-0 right-0 mx-auto h-[1.5px] w-2/3 rounded-full bg-black dark:bg-white"></div>
+                      <div className="absolute -top-2 right-0 left-0 mx-auto h-[1.5px] w-2/3 rounded-full bg-black dark:bg-white"></div>
                     </div>
                   )}
                 </Button>
 
-                {/* Lossless indicator */}
                 {metadata?.format?.lossless && (
                   <div className="absolute left-36">
                     <Tooltip delayDuration={0}>
                       <TooltipTrigger>
-                        <IconRipple stroke={2} className="w-3.5" />
+                        <IconRipple
+                          stroke={2}
+                          className="w-3.5 cursor-pointer"
+                        />
                       </TooltipTrigger>
                       <TooltipContent side="left" sideOffset={25}>
-                        <p>
-                          Lossless [{metadata.format.bitsPerSample}/
-                          {(metadata.format.sampleRate / 1000).toFixed(1)}kHz]
-                        </p>
+                        Lossless [{metadata.format.bitsPerSample}/
+                        {(metadata.format.sampleRate / 1000).toFixed(1)}kHz]
                       </TooltipContent>
                     </Tooltip>
                   </div>
                 )}
 
-                {/* Last.fm indicator - only show when enabled and active */}
                 {lastFmSettings.enableLastFm &&
                   lastFmSettings.lastFmSessionKey &&
                   lastFmStatus.lastFmActive && (
@@ -984,13 +960,12 @@ export const Player = () => {
                     </div>
                   )}
 
-                {/* Favorite button */}
                 <div className="absolute right-36">
                   <Tooltip delayDuration={0}>
                     <TooltipTrigger>
                       <Button
                         variant="ghost"
-                        className="!opacity-100"
+                        className="opacity-100!"
                         onClick={() => toggleFavourite(song?.id)}
                         disabled={!song}
                       >
@@ -1011,7 +986,6 @@ export const Player = () => {
                 </div>
               </div>
 
-              {/* Seek slider */}
               <div className="relative flex h-full w-96 items-center px-4">
                 <p className="absolute -left-8">{convertTime(seekPosition)}</p>
                 <Slider
@@ -1026,20 +1000,18 @@ export const Player = () => {
               </div>
             </div>
 
-            {/* Right side - Volume and additional controls */}
             <div className="absolute right-0 flex w-1/4 items-center justify-end gap-10">
-              {/* Volume controls */}
               <div className="flex items-center gap-4">
                 <Button
                   variant="ghost"
                   onClick={toggleMute}
-                  className="!opacity-100"
+                  className="opacity-100!"
                 >
                   {!isMuted ? (
                     <IconVolume
                       stroke={2}
                       size={17.5}
-                      className="wora-transition !opacity-30 hover:!opacity-100"
+                      className="wora-transition opacity-30! hover:opacity-100!"
                     />
                   ) : (
                     <IconVolumeOff
@@ -1058,9 +1030,7 @@ export const Player = () => {
                 />
               </div>
 
-              {/* Additional controls */}
               <div className="flex items-center gap-4">
-                {/* Lyrics button */}
                 {lyrics ? (
                   <Button variant="ghost" onClick={toggleLyrics}>
                     <IconMessage stroke={2} size={15} />
@@ -1073,7 +1043,6 @@ export const Player = () => {
                   />
                 )}
 
-                {/* Track info dialog */}
                 <Dialog>
                   <DialogTrigger
                     className={
@@ -1177,7 +1146,6 @@ export const Player = () => {
                   )}
                 </Dialog>
 
-                {/* Queue button */}
                 <Button variant="ghost" onClick={toggleQueue}>
                   <IconList stroke={2} size={15} />
                 </Button>

@@ -181,7 +181,6 @@ export default function Playlist() {
     }
   };
 
-  // Additional menu items for the song context menu
   const renderContextMenuItems = (song: any) => (
     <ContextMenuItem
       className="flex items-center gap-2"
@@ -192,7 +191,6 @@ export default function Playlist() {
     </ContextMenuItem>
   );
 
-  // Show loading or empty state if no playlist
   if (!playlist) {
     return (
       <div className="flex h-[50vh] w-full items-center justify-center">
@@ -203,22 +201,20 @@ export default function Playlist() {
 
   return (
     <>
-      {/* Playlist header */}
       <div className="relative h-96 w-full overflow-hidden rounded-2xl">
         {playlist.id === 1 ? (
-          <div className="h-full w-full bg-red-500 gradient-mask-b-10"></div>
+          <div className="h-full w-full bg-red-500 mask-b-from-30%"></div>
         ) : (
           <Image
             alt={playlist.name}
             src={playlist.cover ? "wora://" + playlist.cover : "/coverArt.png"}
             fill
             loading="lazy"
-            className="object-cover object-center blur-xl gradient-mask-b-10"
+            className="mask-b-from-30% object-cover object-center blur-xl"
           />
         )}
         <div className="absolute bottom-6 left-6">
           <div className="flex items-end gap-4">
-            {/* Album cover */}
             <div className="relative h-52 w-52 overflow-hidden rounded-xl shadow-lg">
               <Image
                 alt={playlist.name}
@@ -234,7 +230,6 @@ export default function Playlist() {
                 className="scale-[1.01] object-cover"
               />
             </div>
-            {/* Playlist info and actions */}
             <div className="flex flex-col gap-4">
               <div>
                 <h1 className="text-2xl font-medium">{playlist.name}</h1>
@@ -264,7 +259,6 @@ export default function Playlist() {
           </div>
         </div>
       </div>
-      {/* Song list */}
       <div className="pt-2">
         <Songs
           library={playlist.songs}
@@ -272,7 +266,6 @@ export default function Playlist() {
           disableScroll={true}
         />
       </div>
-      {/* Edit playlist dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -284,7 +277,6 @@ export default function Playlist() {
               onSubmit={form.handleSubmit(updatePlaylist)}
               className="flex gap-4 text-xs"
             >
-              {/* Album cover */}
               <div>
                 <div className="relative h-36 w-36 overflow-hidden rounded-xl">
                   <Image
@@ -299,7 +291,6 @@ export default function Playlist() {
                   />
                 </div>
               </div>
-              {/* Form inputs */}
               <div className="flex h-full w-full flex-col items-end gap-4">
                 <FormField
                   control={form.control}

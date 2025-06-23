@@ -12,7 +12,6 @@
   <a href="https://github.com/hiaaryan/wora/watchers"><img src="https://img.shields.io/github/watchers/hiaaryan/wora?style=flat&watchers" alt="GitHub Watchers" /></a>
 </p>
 
-
 ## 🤝 Contributing to Wora
 
 Thank you for considering contributing to **Wora**! 🎉 We welcome contributions from everyone. We have prepared some guidelines for you to get started ✅

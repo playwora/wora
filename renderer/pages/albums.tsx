@@ -18,13 +18,11 @@ import {
   IconSortDescending,
   IconLayoutGrid,
   IconLayoutList,
-  IconLayoutCards,
   IconGridDots,
 } from "@tabler/icons-react";
 import Image from "next/image";
 import Link from "next/link";
 import albumCache from "@/lib/albumCache";
-import VirtualizedAlbumGrid from "@/components/ui/virtualized-album-grid";
 
 export default function Albums() {
   // Initialize state from the global album cache
@@ -47,8 +45,6 @@ export default function Albums() {
   const [viewMode, setViewMode] = useState(albumCache.getViewMode());
 
   const router = useRouter();
-  const observer = useRef<IntersectionObserver | null>(null);
-  const isFirstRender = useRef(true);
   const searchTimeout = useRef<NodeJS.Timeout | null>(null);
   const gridRef = useRef(null);
 
@@ -492,111 +488,6 @@ export default function Albums() {
     setSearchTerm("");
   };
 
-  // Render album function for our virtualized grid
-  const renderAlbum = (album) => {
-    switch (viewMode) {
-      case "grid":
-        return <AlbumCard album={album} />;
-
-      case "compact-grid":
-        return (
-          <Link
-            href={`/albums/${album.id}`}
-            className="group/album flex flex-col items-center"
-          >
-            <div className="relative aspect-square w-full overflow-hidden rounded-lg shadow-md transition-all duration-200 hover:shadow-xl">
-              <Image
-                alt={album.name}
-                src={album.cover ? `wora://${album.cover}` : "/coverArt.png"}
-                fill
-                loading="lazy"
-                className="object-cover transition-all duration-200 group-hover/album:scale-105"
-                sizes="(max-width: 640px) 33vw, (max-width: 768px) 25vw, 16vw"
-                quality={20}
-              />
-            </div>
-            <p
-              className="mt-2 w-full truncate text-center text-xs font-medium"
-              title={album.name}
-            >
-              {album.name}
-            </p>
-          </Link>
-        );
-
-      case "list":
-        return (
-          <Link
-            href={`/albums/${album.id}`}
-            className="group/album flex w-full items-center justify-between rounded-xl border border-gray-200 p-4 transition-all duration-200 hover:bg-black/5 hover:shadow-md dark:border-gray-800 dark:hover:bg-white/10"
-          >
-            <div className="flex items-center gap-4">
-              <div className="relative h-16 w-16 overflow-hidden rounded-lg shadow-lg">
-                <Image
-                  alt={album.name}
-                  src={album.cover ? `wora://${album.cover}` : "/coverArt.png"}
-                  fill
-                  loading="lazy"
-                  className="object-cover"
-                  quality={10}
-                />
-              </div>
-              <div className="flex flex-col">
-                <p className="text-sm font-medium">{album.name}</p>
-                <button
-                  onClick={(e) => navigateToArtist(album.artist, e)}
-                  className="text-start opacity-60 hover:underline hover:opacity-100"
-                >
-                  {album.artist}
-                </button>
-                <div className="flex items-center gap-2">
-                  {album.year && (
-                    <p className="text-xs opacity-50">Year: {album.year}</p>
-                  )}
-                  <div className="text-xs opacity-50">•</div>
-                  <p
-                    className="text-xs opacity-50"
-                    title="Total album duration"
-                  >
-                    Duration: {calculateAlbumDuration(album)}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </Link>
-        );
-
-      default:
-        return <AlbumCard album={album} />;
-    }
-  };
-
-  // Get appropriate column count based on view mode
-  const getColumnCount = () => {
-    switch (viewMode) {
-      case "grid":
-        return { xs: 2, sm: 3, md: 4, lg: 5, xl: 6 };
-      case "compact-grid":
-        return { xs: 3, sm: 4, md: 6, lg: 8, xl: 10 };
-      case "list":
-        return { xs: 1, sm: 1, md: 1, lg: 1, xl: 1 };
-      default:
-        return { xs: 2, sm: 3, md: 4, lg: 5, xl: 6 };
-    }
-  };
-
-  // Get gap size based on view mode
-  const getGapSize = () => {
-    return viewMode === "compact-grid" ? 16 : 24;
-  };
-
-  // Get item height based on view mode
-  const getItemHeight = () => {
-    if (viewMode === "list") return 100; // Fixed height for list items
-    // For grid views, height depends on column width, we'll calculate dynamically in the component
-    return null;
-  };
-
   // Show loading indicators
   const isLoadingInitial = loading && albums.length === 0;
   const isSearching = searchLoading && searchTerm;
@@ -606,7 +497,7 @@ export default function Albums() {
       <div className="flex flex-col gap-8">
         {/* Header with title and description */}
         <div className="flex flex-col">
-          <div className="mt-4 text-lg font-medium leading-6">Albums</div>
+          <div className="mt-4 text-lg leading-6 font-medium">Albums</div>
           <div className="opacity-50">All of your albums in one place.</div>
         </div>
 
@@ -617,17 +508,17 @@ export default function Albums() {
               placeholder="Search by album title or artist name..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-8 pr-8"
+              className="pr-8 pl-8"
             />
             {searchTerm && (
               <button
                 onClick={clearSearch}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                className="absolute top-1/2 right-2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
               >
                 <IconX size={16} stroke={2} />
               </button>
             )}
-            <div className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-gray-400">
+            <div className="pointer-events-none absolute top-1/2 left-2 -translate-y-1/2 text-gray-400">
               <IconSearch size={16} stroke={2} />
             </div>
           </div>
@@ -658,34 +549,6 @@ export default function Albums() {
                 )}
               </Button>
             </div>
-
-            {/* View mode toggle */}
-            <div className="flex rounded-md border">
-              <Button
-                variant={viewMode === "grid" ? "default" : "ghost"}
-                className="rounded-l-md rounded-r-none border-r px-2"
-                onClick={() => setViewMode("grid")}
-                title="Regular Grid"
-              >
-                <IconLayoutGrid stroke={2} size={18} />
-              </Button>
-              <Button
-                variant={viewMode === "compact-grid" ? "default" : "ghost"}
-                className="rounded-none border-r px-2"
-                onClick={() => setViewMode("compact-grid")}
-                title="Compact Grid"
-              >
-                <IconGridDots stroke={2} size={18} />
-              </Button>
-              <Button
-                variant={viewMode === "list" ? "default" : "ghost"}
-                className="rounded-l-none rounded-r-md px-2"
-                onClick={() => setViewMode("list")}
-                title="Detailed List"
-              >
-                <IconLayoutList stroke={2} size={18} />
-              </Button>
-            </div>
           </div>
         </div>
 
@@ -699,28 +562,14 @@ export default function Albums() {
             {filteredAlbums.length > 0 ? (
               <div
                 ref={gridRef}
-                style={{
-                  height: "calc(100vh - 350px)",
-                  width: "100%",
-                  paddingBottom: "28px",
-                }}
+                className="grid h-full w-full grid-cols-5 gap-8"
               >
-                <VirtualizedAlbumGrid
-                  albums={filteredAlbums.map((album) => ({
-                    ...album,
-                    id: album.id.toString(),
-                  }))}
-                  navigateToArtist={navigateToArtist}
-                  calculateAlbumDuration={calculateAlbumDuration}
-                  viewMode={viewMode}
-                  onLoadMore={() => {
-                    // Only load more if not searching, not already loading, and there are more to load
-                    if (!searchTerm && !loading && hasMore) {
-                      console.log("Loading more albums from scroll trigger");
-                      loadAlbums();
-                    }
-                  }}
-                />
+                {filteredAlbums.map((album) => (
+                  <AlbumCard
+                    key={album.id}
+                    album={{ ...album, id: album.id.toString() }}
+                  />
+                ))}
               </div>
             ) : (
               <div className="flex w-full items-center justify-center p-10 text-gray-500">

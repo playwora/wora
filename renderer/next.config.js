@@ -7,7 +7,7 @@ module.exports = {
   trailingSlash: true,
   images: {
     unoptimized: true, // Required for static export
-    domains: ['lastfm.freetls.fastly.net'], // Allow Last.fm images
+    domains: ["lastfm.freetls.fastly.net"], // Allow Last.fm images
   },
   webpack: (config) => {
     return config;
