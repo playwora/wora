@@ -247,18 +247,22 @@ export const deletePlaylist = async (data: { id: number }) => {
   try {
     sqlite.exec("BEGIN;");
 
+    // delete all songs from the playlist
     await db
       .delete(playlistSongs)
       .where(eq(playlistSongs.playlistId, data.id));
 
+    // delete playlist itself
     const result = await db
       .delete(playlists)
       .where(eq(playlists.id, data.id));
 
+    // check if no rows were affected, throw error if true
     if ("changes" in result && result.changes === 0) {
       throw new Error(`Playlist ${data.id} not found`);
     }
 
+    // commit on success
     sqlite.exec("COMMIT;");
     return { message: `Playlist ${data.id} deleted successfully` };
   } catch (err: any) {
