@@ -244,21 +244,13 @@ export const createPlaylist = async (data: any) => {
 };
 
 export const deletePlaylist = async (data: { id: number }) => {
-  await db.transaction((tx) => {
-    const deleteLinks = tx
-      .delete(playlistSongs)
-      .where(eq(playlistSongs.playlistId, data.id));
+  await db.transaction(async (tx) => {
+    await tx.delete(playlistSongs).where(eq(playlistSongs.playlistId, data.id));
 
-    const deletePlaylist = tx
-      .delete(playlists)
-      .where(eq(playlists.id, data.id))
-      .then((result) => {
-        if ("changes" in result && result.changes === 0) {
-          throw new Error(`Playlist ${data.id} not found`);
-        }
-      });
-
-    return Promise.all([deleteLinks, deletePlaylist]);
+    const result = await tx.delete(playlists).where(eq(playlists.id, data.id));
+    if ("changes" in result && result.changes === 0) {
+      throw new Error(`Playlist ${data.id} not found`);
+    }
   });
 
   return { message: `Playlist ${data.id} deleted successfully` };
