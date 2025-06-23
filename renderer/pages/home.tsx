@@ -101,7 +101,7 @@ export default function Home() {
       </div>
       {library?.albums && library.albums.length > 5 && (
         <Carousel
-          className="relative w-[89vw]"
+          className="relative w-[88vw]"
           opts={{
             loop: true,
           }}

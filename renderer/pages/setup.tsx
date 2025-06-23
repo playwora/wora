@@ -18,12 +18,10 @@ export default function Setup() {
       .invoke("scanLibrary", true)
       .then((response) => {
         if (response?.canceled) {
-          // User canceled folder selection
           setLoading(false);
           return;
         }
 
-        // Successfully set up music folder, redirect to home
         router.push("/home");
       })
       .catch((error) => {
@@ -36,7 +34,7 @@ export default function Setup() {
   return (
     <div className="wora-transition h-screen w-screen">
       <Actions />
-      <div className="relative flex h-full w-full select-none items-center overflow-hidden p-8">
+      <div className="relative flex h-full w-full items-center overflow-hidden p-8 select-none">
         <div className="absolute -bottom-36 -left-32 h-96 w-96 rounded-full bg-black blur-[1700px] dark:bg-white" />
         <div className="z-10 flex flex-col gap-8">
           <div className="flex flex-col gap-3">
@@ -59,7 +57,7 @@ export default function Setup() {
             </div>
           </div>
           <Button
-            className="w-fit justify-between px-6 py-5 text-sm"
+            className="w-fit"
             onClick={handleSelectMusicFolder}
             disabled={loading}
           >

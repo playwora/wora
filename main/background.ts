@@ -35,7 +35,6 @@ import { parseFile } from "music-metadata";
 import fs from "fs";
 import { Client } from "@xhayper/discord-rpc";
 import { eq, sql } from "drizzle-orm";
-import { albums } from "./helpers/db/schema";
 import { initializeLastFmHandlers } from "./helpers/lastfm-service";
 import * as electronLog from "electron-log";
 

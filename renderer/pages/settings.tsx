@@ -184,12 +184,7 @@ export default function Settings() {
       if (response) {
         setLoading(false);
         setSettings((prevSettings) => ({ ...prevSettings, ...updatedData }));
-        toast(
-          <div className="flex w-fit items-center gap-2 text-xs">
-            <IconCheck className="text-green-400" stroke={2} size={16} />
-            Your settings are updated.
-          </div>,
-        );
+        toast.success("Your settings are updated.");
       }
     });
   };
@@ -429,7 +424,7 @@ export default function Settings() {
     <div className="flex flex-col gap-8">
       <div className="flex flex-col gap-8">
         <div className="flex flex-col">
-          <div className="mt-4 text-lg font-medium leading-6">Settings</div>
+          <div className="mt-4 text-lg leading-6 font-medium">Settings</div>
           <div className="opacity-50">You&apos;re on your own here.</div>
         </div>
         <div className="relative flex w-full flex-col gap-8">
@@ -545,17 +540,19 @@ export default function Settings() {
                   </div>
                 </div>
                 <div className="flex w-full items-center gap-2">
-                  <div className="dark:bg.white/10 flex h-9 w-full items-center rounded-xl bg-black/5 px-3 py-1 text-xs transition duration-300 focus:outline-hidden">
-                    {settings && settings.musicFolder}
-                  </div>
+                  <Input
+                    value={settings && settings.musicFolder}
+                    className="w-full"
+                    disabled
+                  />
                   <Button
-                    className="w-fit justify-between text-nowrap text-xs"
+                    className="w-fit justify-between text-xs text-nowrap"
                     onClick={rescanLibrary}
                   >
                     <IconRefresh stroke={2} className="h-3.5 w-3.5" />
                   </Button>
                   <Button
-                    className="w-fit justify-between text-nowrap text-xs"
+                    className="w-fit justify-between text-xs text-nowrap"
                     onClick={scanLibrary}
                   >
                     Update Music Folder
