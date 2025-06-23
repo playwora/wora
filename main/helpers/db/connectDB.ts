@@ -244,18 +244,27 @@ export const createPlaylist = async (data: any) => {
 };
 
 export const deletePlaylist = async (data: { id: number }) => {
-  await db.transaction(async (tx) => {
-    // Remove all links in playlistSongs
-    await tx.delete(playlistSongs).where(eq(playlistSongs.playlistId, data.id));
+  try {
+    sqlite.exec("BEGIN;");
 
-    // Now delete the playlist
-    const result = await tx.delete(playlists).where(eq(playlists.id, data.id));
+    await db
+      .delete(playlistSongs)
+      .where(eq(playlistSongs.playlistId, data.id));
+
+    const result = await db
+      .delete(playlists)
+      .where(eq(playlists.id, data.id));
+
     if ("changes" in result && result.changes === 0) {
       throw new Error(`Playlist ${data.id} not found`);
     }
-  });
 
-  return { message: `Playlist ${data.id} deleted successfully` };
+    sqlite.exec("COMMIT;");
+    return { message: `Playlist ${data.id} deleted successfully` };
+  } catch (err: any) {
+    sqlite.exec("ROLLBACK;");
+    throw new Error(`Failed to delete playlist: ${err.message}`);
+  }
 };
 
 export const updatePlaylist = async (data: any) => {
