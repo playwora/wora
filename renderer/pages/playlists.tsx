@@ -50,7 +50,9 @@ export default function Playlists() {
   useEffect(() => {
     const load = () =>
       window.ipc.invoke("getAllPlaylists").then((resp) => setPlaylists(resp));
+
     load();
+
     const resetListener = window.ipc.on("resetPlaylistsState", load);
     return () => {
       resetListener();
@@ -66,6 +68,7 @@ export default function Playlists() {
   const createPlaylist = async (data: z.infer<typeof formSchema>) => {
     setLoading(true);
     let playlistCoverPath = null;
+
     try {
       const files = data.playlistCover as FileList | undefined;
       if (files && files.length > 0) {
@@ -76,16 +79,19 @@ export default function Playlists() {
           data: Array.from(new Uint8Array(buffer)),
         });
       }
+
       const resp = await window.ipc.invoke("createPlaylist", {
         name: data.name,
         description: data.description,
         cover: playlistCoverPath,
       });
+
       setDialogOpen(false);
       setPreviewUrl("");
       form.reset();
       router.push(`/playlists/${resp.lastInsertRowid}`);
-    } catch {
+    } catch (err) {
+      console.error(err);
       toast(
         <div className="flex w-fit items-center gap-2 text-xs">
           <IconX className="text-red-500" stroke={2} size={16} />
@@ -110,6 +116,7 @@ export default function Playlists() {
           Create Playlist <IconPlus size={14} />
         </Button>
       </div>
+
       <div className="grid w-full grid-cols-5 gap-8">
         {playlists.map((pl) => (
           <Link key={pl.id} href={`/playlists/${pl.id}`} passHref>
@@ -139,6 +146,7 @@ export default function Playlists() {
           </Link>
         ))}
       </div>
+
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -147,6 +155,7 @@ export default function Playlists() {
               Add a new playlist to your library.
             </DialogDescription>
           </DialogHeader>
+
           <Form {...form}>
             <form
               onSubmit={form.handleSubmit(createPlaylist)}
@@ -191,6 +200,7 @@ export default function Playlists() {
                   </FormItem>
                 )}
               />
+
               <div className="flex h-full w-full flex-col items-end justify-between gap-4">
                 <div className="flex w-full flex-col gap-2">
                   <FormField
@@ -218,6 +228,7 @@ export default function Playlists() {
                     )}
                   />
                 </div>
+
                 <Button
                   className="w-fit justify-between text-xs"
                   type="submit"
