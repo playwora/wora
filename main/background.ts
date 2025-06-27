@@ -142,6 +142,13 @@ const initializeLibrary = async () => {
     },
   });
 
+  mainWindow.on('close', (event) => {
+    if (process.platform === 'darwin') {
+      event.preventDefault();
+      mainWindow.hide();
+    }
+  });
+
   ipcMain.on("quitApp", async () => {
     return app.quit();
   });
@@ -579,5 +586,15 @@ ipcMain.handle("updateLastFmSettings", async (_, data) => {
 });
 
 app.on("window-all-closed", () => {
-  app.quit();
+  // On macOS, don't quit when all windows are closed
+  if (process.platform !== "darwin") {
+    app.quit();
+  }
+});
+
+// Handle Cmd+Q to properly quit the app on macOS
+app.on('before-quit', () => {
+  if (mainWindow) {
+    mainWindow.removeAllListeners('close');
+  }
 });
