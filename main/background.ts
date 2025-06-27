@@ -598,3 +598,10 @@ app.on('before-quit', () => {
     mainWindow.removeAllListeners('close');
   }
 });
+
+app.on('activate', () => {
+  if (mainWindow) {
+    mainWindow.show();
+    mainWindow.focus();
+  }
+});
