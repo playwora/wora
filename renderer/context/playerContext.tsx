@@ -31,6 +31,7 @@ interface PlayerState {
   currentIndex: number;
   repeat: boolean;
   shuffle: boolean;
+  isPlaying: boolean;
 }
 
 interface PlayerContextType extends PlayerState {
@@ -46,6 +47,8 @@ interface PlayerContextType extends PlayerState {
   toggleShuffle: () => void;
   playNext: (song: Song) => void;
   addToQueue: (song: Song) => void;
+  jumpToSong: (songIndex: number) => void;
+  setIsPlaying: (isPlaying: boolean) => void;
 }
 
 const initialPlayerState: PlayerState = {
@@ -56,6 +59,7 @@ const initialPlayerState: PlayerState = {
   currentIndex: 0,
   repeat: false,
   shuffle: false,
+  isPlaying: false,
 };
 
 // Helper to safely access localStorage (only in browser)
@@ -352,6 +356,28 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
     }));
   }, []);
 
+  const jumpToSong = useCallback((songIndex: number) => {
+    setPlayerState((prevState) => {
+      const { queue, currentIndex, song: currentSong, history } = prevState;
+
+      if (songIndex < 0 || songIndex >= queue.length) {
+        return prevState; // Invalid index
+      }
+
+      // Add current song to history if we have one and we're jumping to a different song
+      const newHistory = currentSong && currentIndex !== songIndex
+        ? [...history, currentSong]
+        : history;
+
+      return {
+        ...prevState,
+        currentIndex: songIndex,
+        song: queue[songIndex],
+        history: newHistory,
+      };
+    });
+  }, []);
+
   // Memoize context value to prevent unnecessary re-renders
   const contextValue = useMemo<PlayerContextType>(
     () => ({
@@ -377,6 +403,10 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
       toggleShuffle,
       playNext,
       addToQueue,
+      jumpToSong,
+      setIsPlaying: (isPlaying: boolean) => {
+        setPlayerState((prev) => ({ ...prev, isPlaying }));
+      },
     }),
     [
       playerState,
@@ -387,6 +417,7 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
       toggleShuffle,
       playNext,
       addToQueue,
+      jumpToSong,
     ],
   );
 

@@ -77,11 +77,15 @@ const SongItem = memo(
     renderAdditionalMenuItems?: (song: Song, index: number) => React.ReactNode;
   }) => {
     const [imgLoaded, setImgLoaded] = useState(false);
+    const { song: currentSong, isPlaying } = usePlayer();
+    const isCurrentSong = currentSong?.id === song.id;
+
     return (
       <ContextMenu>
         <ContextMenuTrigger>
           <div
-            className="wora-transition flex w-full cursor-pointer items-center justify-between rounded-xl p-3 hover:bg-black/5 dark:hover:bg-white/10"
+            className={`wora-transition flex w-full cursor-pointer items-center justify-between rounded-xl p-3 hover:bg-black/5 dark:hover:bg-white/10 ${isCurrentSong ? 'bg-black/5 dark:bg-white/5' : ''
+              }`}
             onClick={() => handleMusicClick(index)}
           >
             <div className="flex items-center gap-4">
@@ -98,9 +102,49 @@ const SongItem = memo(
                   priority={false}
                   onLoad={() => setImgLoaded(true)}
                 />
+                {isCurrentSong && (
+                  <div className="absolute inset-0 flex items-center rounded-lg justify-center bg-black/20 backdrop-blur-sm">
+                    <div className="flex items-end space-x-0.5">
+                      <div
+                        className="w-0.5 h-2 bg-white rounded-full origin-bottom"
+                        style={{
+                          animation: isPlaying ? 'music-bar 0.8s ease-in-out infinite' : 'none',
+                          transform: isPlaying ? undefined : 'scaleY(0.15)',
+                          animationDelay: '0ms'
+                        }}
+                      />
+                      <div
+                        className="w-0.5 h-3 bg-white rounded-full origin-bottom"
+                        style={{
+                          animation: isPlaying ? 'music-bar 0.6s ease-in-out infinite' : 'none',
+                          transform: isPlaying ? undefined : 'scaleY(0.1)',
+                          animationDelay: '100ms'
+                        }}
+                      />
+                      <div
+                        className="w-0.5 h-1.5 bg-white rounded-full origin-bottom"
+                        style={{
+                          animation: isPlaying ? 'music-bar 0.9s ease-in-out infinite' : 'none',
+                          transform: isPlaying ? undefined : 'scaleY(0.2)',
+                          animationDelay: '200ms'
+                        }}
+                      />
+                      <div
+                        className="w-0.5 h-2.5 bg-white rounded-full origin-bottom"
+                        style={{
+                          animation: isPlaying ? 'music-bar 0.7s ease-in-out infinite' : 'none',
+                          transform: isPlaying ? undefined : 'scaleY(0.1)',
+                          animationDelay: '150ms'
+                        }}
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
               <div className="flex flex-col">
-                <p className="text-sm font-medium">{song.name}</p>
+                <p className={`text-sm font-medium`}>
+                  {song.name}
+                </p>
                 <Link
                   href={`/artists/${encodeURIComponent(song.artist)}`}
                   passHref
@@ -112,13 +156,13 @@ const SongItem = memo(
                     router.push(`/artists/${encodeURIComponent(song.artist)}`);
                   }}
                 >
-                  <p className="cursor-pointer opacity-50 hover:underline hover:opacity-80">
+                  <p className={`cursor-pointer opacity-50 hover:underline hover:opacity-80`}>
                     {song.artist}
                   </p>
                 </Link>
               </div>
             </div>
-            <div>
+            <div className="flex items-center gap-2">
               <p className="flex items-center gap-1 opacity-50">
                 <IconClock stroke={2} size={15} />
                 {convertTime(song.duration)}
@@ -204,7 +248,7 @@ const Row = memo(
     const song = library[index];
 
     return (
-      <div style={style}>
+      <div style={style} className="px-0 pb-2">
         <SongItem
           song={song}
           index={index}
@@ -427,7 +471,7 @@ const Songs = forwardRef<
                 height={height || 600}
                 width={width || "100%"}
                 itemCount={itemCount}
-                itemSize={72} // Approximate height of each song item
+                itemSize={80}
                 itemData={itemData}
                 className="no-scrollbar"
                 ref={listRef}

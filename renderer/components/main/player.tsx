@@ -22,8 +22,9 @@ import {
   IconVolumeOff,
   IconX,
 } from "@tabler/icons-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import React, { memo, useCallback, useEffect, useRef, useState } from "react";
 import { Howl } from "howler";
+import { FixedSizeList as List } from "react-window";
 import { Slider } from "@/components/ui/slider";
 import {
   Dialog,
@@ -47,7 +48,7 @@ import {
   updateDiscordState,
   useAudioMetadata,
 } from "@/lib/helpers";
-import { usePlayer } from "@/context/playerContext";
+import { Song, usePlayer } from "@/context/playerContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -66,6 +67,7 @@ import {
   updateNowPlaying,
   isAuthenticated,
 } from "@/lib/lastfm";
+import AutoSizer from "react-virtualized-auto-sizer";
 
 // Toast notification component for consistent messaging
 const NotificationToast = ({ success, message }) => (
@@ -79,11 +81,135 @@ const NotificationToast = ({ success, message }) => (
   </div>
 );
 
+// Helper to get album cover URL
+function getAlbumCoverUrl(song: Song | undefined): string {
+  const cover = song?.album?.cover;
+  if (!cover) return "/coverArt.png";
+  if (cover.includes("://")) return cover;
+  return `wora://${cover}`;
+}
+
+const QueuePanel = memo(({ queue, history, currentIndex, onSongSelect }: {
+  queue: Song[];
+  history: Song[];
+  currentIndex: number;
+  onSongSelect: (song: Song) => void;
+}) => {
+  const ITEM_HEIGHT = 80; // Height of each song item including gap
+
+  const VirtualizedSongListItem = ({ index, style, data }: {
+    index: number;
+    style: React.CSSProperties;
+    data: { songs: Song[]; onSongSelect: (song: Song) => void }
+  }) => {
+    const song = data.songs[index];
+
+    return (
+      <div style={style}>
+        <li
+          className="flex w-full items-center gap-4 overflow-hidden cursor-pointer hover:bg-black/5 dark:hover:bg-white/5 rounded-lg p-2 transition-colors"
+          onClick={() => data.onSongSelect(song)}
+        >
+          <div className="relative min-h-14 min-w-14 overflow-hidden rounded-lg shadow-lg">
+            <Image
+              alt={song.name || "Track"}
+              src={getAlbumCoverUrl(song)}
+              fill
+              priority={false}
+              className="object-cover"
+            />
+          </div>
+          <div className="w-4/5 overflow-hidden">
+            <p className="truncate text-sm font-medium">{song.name}</p>
+            <p className="truncate opacity-50">{song.artist}</p>
+          </div>
+        </li>
+      </div>
+    );
+  };
+
+  const queueSongs = queue.slice(currentIndex + 1);
+  const historySongs = [...history].reverse();
+
+  return (
+    <div className="wora-border relative h-full w-full rounded-2xl bg-white/70 backdrop-blur-xl dark:bg-black/70 pointer-events-auto">
+      <div className="h-utility w-full max-w-3xl px-6 pt-6 pointer-events-auto">
+        <Tabs
+          defaultValue="queue"
+          className="flex h-full w-full flex-col gap-4 mask-b-from-70% pointer-events-auto"
+        >
+          <TabsList className="w-full pointer-events-auto">
+            <TabsTrigger value="queue" className="w-full gap-2 cursor-pointer pointer-events-auto">
+              <IconListTree stroke={2} size={15} /> Queue
+            </TabsTrigger>
+            <TabsTrigger value="history" className="w-full gap-2 cursor-pointer pointer-events-auto">
+              <IconClock stroke={2} size={15} /> History
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent
+            value="queue"
+            className="flex-1 min-h-0 pointer-events-auto"
+          >
+            {queueSongs.length > 0 ? (
+              <AutoSizer>
+                {({ height, width }) => (
+                  <List
+                    height={height}
+                    width={width}
+                    itemCount={queueSongs.length}
+                    itemSize={ITEM_HEIGHT}
+                    itemData={{ songs: queueSongs, onSongSelect }}
+                    className="no-scrollbar pointer-events-auto"
+                  >
+                    {VirtualizedSongListItem}
+                  </List>
+                )}
+              </AutoSizer>
+            ) : (
+              <div className="flex h-40 items-center justify-center text-sm opacity-50 pointer-events-none">
+                Queue is empty
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent
+            value="history"
+            className="flex-1 min-h-0 pointer-events-auto"
+          >
+            {historySongs.length > 0 ? (
+              <AutoSizer>
+                {({ height, width }) => (
+                  <List
+                    height={height}
+                    width={width}
+                    itemCount={historySongs.length}
+                    overscanCount={5}
+                    itemSize={ITEM_HEIGHT}
+                    itemData={{ songs: historySongs, onSongSelect }}
+                    className="no-scrollbar pointer-events-auto"
+                  >
+                    {VirtualizedSongListItem}
+                  </List>
+                )}
+              </AutoSizer>
+            ) : (
+              <div className="flex h-40 items-center justify-center text-sm opacity-50 pointer-events-none">
+                No playback history
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
+      </div>
+    </div>
+  );
+});
+
 export const Player = () => {
   // Player state
-  const [isPlaying, setIsPlaying] = useState(false);
   const [seekPosition, setSeekPosition] = useState(0);
   const [volume, setVolume] = useState(0.5);
+  const [previousVolume, setPreviousVolume] = useState(0.5);
   const [isMuted, setIsMuted] = useState(false);
   const [currentLyric, setCurrentLyric] = useState(null);
   const [showLyrics, setShowLyrics] = useState(false);
@@ -109,6 +235,7 @@ export const Player = () => {
   // References
   const soundRef = useRef<Howl | null>(null);
   const seekUpdateInterval = useRef<NodeJS.Timeout | null>(null);
+  const volumeSliderRef = useRef<HTMLDivElement | null>(null);
 
   // Get player context and song metadata
   const {
@@ -122,6 +249,9 @@ export const Player = () => {
     shuffle,
     toggleShuffle,
     toggleRepeat,
+    jumpToSong,
+    isPlaying,
+    setIsPlaying,
   } = usePlayer();
 
   const { metadata, lyrics, favourite } = useAudioMetadata(song?.filePath);
@@ -303,12 +433,51 @@ export const Player = () => {
   }, []);
 
   const handleVolume = useCallback((value: number[]) => {
+    // Store previous volume before muting (only if not currently muted)
+    if (!isMuted && value[0] > 0.01) {
+      setPreviousVolume(value[0]);
+    }
+
+    setIsMuted(value[0] === 0);
     setVolume(value[0]);
-  }, []);
+  }, [isMuted]);
 
   const toggleMute = useCallback(() => {
-    setIsMuted((prev) => !prev);
-  }, []);
+    if (!isMuted) {
+      // Store current volume before muting
+      if (volume > 0.01) {
+        setPreviousVolume(volume);
+      }
+
+      setVolume(0);
+      setIsMuted(true);
+
+      // Directly apply mute to audio
+      if (soundRef.current) {
+        soundRef.current.mute(true);
+      }
+    } else {
+      // Restore previous volume or default to 50%
+      const restoreVolume = previousVolume > 0.05 ? previousVolume : 0.5;
+      setVolume(restoreVolume);
+      setPreviousVolume(restoreVolume); // Update previousVolume to the restored value
+      setIsMuted(false);
+
+      // Directly apply volume and unmute to audio to avoid desync
+      if (soundRef.current) {
+        soundRef.current.volume(restoreVolume);
+        soundRef.current.mute(false);
+      }
+    }
+  }, [isMuted, volume, previousVolume]);
+
+  const handleVolumeWheel = useCallback((event: WheelEvent) => {
+    event.preventDefault();
+    const delta = event.deltaY > 0 ? -0.05 : 0.05; // Scroll down decreases, scroll up increases
+    const newVolume = Math.max(0, Math.min(1, Math.round((volume + delta) * 100) / 100));
+    console.log(`Volume changed: ${newVolume}`);
+    handleVolume([newVolume]);
+  }, [volume, handleVolume]);
 
   const toggleFavourite = useCallback((id: number) => {
     if (!id) return;
@@ -316,6 +485,69 @@ export const Player = () => {
     window.ipc.send("addToFavourites", id);
     setIsFavourite((prev) => !prev);
   }, []);
+
+  const handleKeyDown = useCallback((event: KeyboardEvent) => {
+    // Only handle keyboard shortcuts if we're not focused on an input element
+    if (event.target instanceof HTMLElement &&
+      ['INPUT', 'TEXTAREA', 'SELECT'].includes(event.target.tagName)) {
+      return;
+    }
+
+    // Spacebar for play/pause (prevent page scroll)
+    if (event.code === 'Space') {
+      event.preventDefault();
+      handlePlayPause();
+      return;
+    }
+
+    // Like/Dislike Song: Alt + Shift + B
+    if (event.altKey && event.shiftKey && event.code === 'KeyB') {
+      // No preventDefault needed for this combo
+      if (song?.id) {
+        toggleFavourite(song.id);
+      }
+      return;
+    }
+
+    // Shuffle: Alt + S (Mac) | Ctrl/Cmd + S (Windows)
+    if (((event.altKey && navigator.platform.includes('Mac')) ||
+      (event.ctrlKey && !navigator.platform.includes('Mac'))) &&
+      event.code === 'KeyS') {
+      event.preventDefault(); // Prevent browser save dialog
+      toggleShuffle();
+      return;
+    }
+
+    // Repeat: Alt + R (Mac) | Ctrl/Cmd + R (Windows)
+    if (((event.altKey && navigator.platform.includes('Mac')) ||
+      (event.ctrlKey && !navigator.platform.includes('Mac'))) &&
+      event.code === 'KeyR') {
+      event.preventDefault(); // Prevent browser refresh
+      toggleRepeat();
+      return;
+    }
+
+    // Mute/Unmute: M
+    if (event.code === 'KeyM') {
+      // No preventDefault needed for M key
+      toggleMute();
+      return;
+    }
+
+    // Go to Previous: Up Arrow
+    if (event.code === 'ArrowUp') {
+      event.preventDefault(); // Prevent page scroll
+      previousSong();
+      return;
+    }
+
+    // Go to Next: Down Arrow
+    if (event.code === 'ArrowDown') {
+      event.preventDefault(); // Prevent page scroll
+      nextSong();
+      return;
+    }
+  }, [handlePlayPause, song, toggleFavourite, toggleShuffle, toggleRepeat, toggleMute, previousSong, nextSong]);
 
   const handleLyricClick = useCallback((time: number) => {
     if (!soundRef.current) return;
@@ -360,6 +592,15 @@ export const Player = () => {
     [],
   );
 
+  const handleSongSelect = useCallback((selectedSong: Song) => {
+    // Find the song in the current queue and jump to it
+    const songIndex = queue.findIndex(song => song.id === selectedSong.id);
+    if (songIndex !== -1) {
+      // Use the jumpToSong function which preserves history
+      jumpToSong(songIndex);
+    }
+  }, [queue, jumpToSong]);
+
   // Enable client-side rendering
   useEffect(() => {
     setIsClient(true);
@@ -381,6 +622,27 @@ export const Player = () => {
       }
     };
   }, []);
+
+  // Setup volume slider wheel event
+  useEffect(() => {
+    const volumeSlider = volumeSliderRef.current;
+    if (!volumeSlider) return;
+
+    volumeSlider.addEventListener('wheel', handleVolumeWheel, { passive: false });
+
+    return () => {
+      volumeSlider.removeEventListener('wheel', handleVolumeWheel);
+    };
+  }, [handleVolumeWheel]);
+
+  // Setup spacebar play/pause functionality
+  useEffect(() => {
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [handleKeyDown]);
 
   // Update favorite status when song changes
   useEffect(() => {
@@ -454,6 +716,9 @@ export const Player = () => {
     if (seekUpdateInterval.current) {
       clearInterval(seekUpdateInterval.current);
     }
+
+    // Reset seek position immediately when song changes
+    setSeekPosition(0);
 
     // No song to play, exit early
     if (!song?.filePath) return;
@@ -641,8 +906,13 @@ export const Player = () => {
   useEffect(() => {
     if (!soundRef.current) return;
 
-    soundRef.current.volume(volume);
-    soundRef.current.mute(isMuted);
+    // When unmuting, set volume first, then unmute
+    if (!isMuted) {
+      soundRef.current.volume(volume);
+      soundRef.current.mute(false);
+    } else {
+      soundRef.current.mute(true);
+    }
   }, [volume, isMuted]);
 
   // Apply repeat setting when it changes
@@ -663,86 +933,6 @@ export const Player = () => {
     );
   }
 
-  const QueuePanel = () => (
-    <div className="wora-border relative h-full w-full rounded-2xl bg-white/70 backdrop-blur-xl dark:bg-black/70">
-      <div className="h-utility w-full max-w-3xl px-6 pt-6">
-        <Tabs
-          defaultValue="queue"
-          className="flex h-full w-full flex-col gap-4 mask-b-from-70%"
-        >
-          <TabsList className="w-full">
-            <TabsTrigger value="queue" className="w-full gap-2">
-              <IconListTree stroke={2} size={15} /> Queue
-            </TabsTrigger>
-            <TabsTrigger value="history" className="w-full gap-2">
-              <IconClock stroke={2} size={15} /> History
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent
-            value="queue"
-            className="no-scrollbar grow overflow-y-auto pb-64"
-          >
-            <ul className="flex flex-col gap-4">
-              {queue.slice(currentIndex + 1).map((song) => (
-                <SongListItem key={song.id} song={song} />
-              ))}
-
-              {queue.length <= 1 && (
-                <div className="flex h-40 items-center justify-center text-sm opacity-50">
-                  Queue is empty
-                </div>
-              )}
-            </ul>
-          </TabsContent>
-
-          {/* History tab content */}
-          <TabsContent
-            value="history"
-            className="no-scrollbar grow overflow-y-auto pb-64"
-          >
-            <ul className="flex flex-col gap-4">
-              {[...history].reverse().map((song) => (
-                <SongListItem key={`history-${song.id}`} song={song} />
-              ))}
-
-              {history.length === 0 && (
-                <div className="flex h-40 items-center justify-center text-sm opacity-50">
-                  No playback history
-                </div>
-              )}
-            </ul>
-          </TabsContent>
-        </Tabs>
-      </div>
-    </div>
-  );
-
-  const SongListItem = ({ song }) => (
-    <li className="flex w-full items-center gap-4 overflow-hidden">
-      <div className="relative min-h-14 min-w-14 overflow-hidden rounded-lg shadow-lg">
-        <Image
-          alt={song.name || "Track"}
-          src={
-            song?.album?.cover
-              ? song.album.cover.startsWith("/") ||
-                song.album.cover.includes("://")
-                ? `${song.album.cover}`
-                : `wora://${song.album.cover}`
-              : "/coverArt.png"
-          }
-          fill
-          priority={false}
-          className="object-cover"
-        />
-      </div>
-      <div className="w-4/5 overflow-hidden">
-        <p className="truncate text-sm font-medium">{song.name}</p>
-        <p className="truncate opacity-50">{song.artist}</p>
-      </div>
-    </li>
-  );
-
   return (
     <div>
       <div className="absolute top-0 right-0 w-full">
@@ -757,7 +947,7 @@ export const Player = () => {
       </div>
 
       <div className="!absolute top-0 right-0 w-96">
-        {showQueue && <QueuePanel />}
+        {showQueue && <QueuePanel queue={queue} history={history} currentIndex={currentIndex} onSongSelect={handleSongSelect} />}
       </div>
 
       <div className="wora-border h-28 w-full overflow-hidden rounded-2xl p-6">
@@ -839,6 +1029,22 @@ export const Player = () => {
 
             <div className="absolute right-0 left-0 mx-auto flex h-full w-2/4 flex-col items-center justify-between gap-4">
               <div className="flex h-full w-full items-center justify-center gap-8">
+                {metadata?.format?.lossless && (
+                  <div className="flex">
+                    <Tooltip delayDuration={0}>
+                      <TooltipTrigger>
+                        <IconRipple
+                          stroke={2}
+                          className="w-3.5 cursor-pointer"
+                        />
+                      </TooltipTrigger>
+                      <TooltipContent side="left" sideOffset={25}>
+                        Lossless [{metadata.format.bitsPerSample}/
+                        {(metadata.format.sampleRate / 1000).toFixed(1)}kHz]
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
+                )}
                 <Button
                   variant="ghost"
                   onClick={toggleShuffle}
@@ -848,7 +1054,7 @@ export const Player = () => {
                     <IconArrowsShuffle2
                       stroke={2}
                       size={16}
-                      className="opacity-30! hover:opacity-100!"
+                      className="wora-transition opacity-30! hover:opacity-100!"
                     />
                   ) : (
                     <div>
@@ -896,7 +1102,7 @@ export const Player = () => {
                     <IconRepeat
                       stroke={2}
                       size={15}
-                      className="opacity-30! hover:opacity-100!"
+                      className="wora-transition opacity-30! hover:opacity-100!"
                     />
                   ) : (
                     <div>
@@ -905,23 +1111,6 @@ export const Player = () => {
                     </div>
                   )}
                 </Button>
-
-                {metadata?.format?.lossless && (
-                  <div className="absolute left-36">
-                    <Tooltip delayDuration={0}>
-                      <TooltipTrigger>
-                        <IconRipple
-                          stroke={2}
-                          className="w-3.5 cursor-pointer"
-                        />
-                      </TooltipTrigger>
-                      <TooltipContent side="left" sideOffset={25}>
-                        Lossless [{metadata.format.bitsPerSample}/
-                        {(metadata.format.sampleRate / 1000).toFixed(1)}kHz]
-                      </TooltipContent>
-                    </Tooltip>
-                  </div>
-                )}
 
                 {lastFmSettings.enableLastFm &&
                   lastFmSettings.lastFmSessionKey &&
@@ -960,12 +1149,12 @@ export const Player = () => {
                     </div>
                   )}
 
-                <div className="absolute right-36">
+                <div className="flex">
                   <Tooltip delayDuration={0}>
                     <TooltipTrigger>
                       <Button
                         variant="ghost"
-                        className="opacity-100!"
+                        className="opacity-100! flex justify-center items-center"
                         onClick={() => toggleFavourite(song?.id)}
                         disabled={!song}
                       >
@@ -1017,11 +1206,12 @@ export const Player = () => {
                     <IconVolumeOff
                       stroke={2}
                       size={17.5}
-                      className="text-red-500"
+                      className="wora-transition opacity-30! hover:opacity-100!"
                     />
                   )}
                 </Button>
                 <Slider
+                  ref={volumeSliderRef}
                   onValueChange={handleVolume}
                   value={[volume]}
                   max={1}
@@ -1047,7 +1237,7 @@ export const Player = () => {
                   <DialogTrigger
                     className={
                       song
-                        ? "opacity-30 duration-500 hover:opacity-100"
+                        ? "opacity-30 duration-500 hover:opacity-100 cursor-pointer"
                         : "cursor-not-allowed text-red-500 opacity-75"
                     }
                     disabled={!song}

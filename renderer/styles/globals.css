@@ -88,3 +88,12 @@ layer(base);
 html {
   overscroll-behavior: none;
 }
+
+@keyframes music-bar {
+  0%, 100% { 
+    transform: scaleY(0.3);
+  }
+  50% { 
+    transform: scaleY(1);
+  }
+}

@@ -481,7 +481,7 @@ export default function Settings() {
                           ? settings.name
                           : "Wora User"}
                       </p>
-                      <p className="opacity-50">A great listner of music.</p>
+                      <p className="opacity-50">A great listener of music.</p>
                     </div>
                   </div>
                   <div className="flex w-full items-center gap-2">
@@ -708,7 +708,7 @@ export default function Settings() {
                         control={lastFmForm.control}
                         name="lastFmUsername"
                         render={({ field }) => (
-                          <FormItem>
+                          <FormItem className="flex flex-col">
                             <FormLabel className="text-xs">
                               Last.fm Username
                             </FormLabel>
@@ -724,7 +724,7 @@ export default function Settings() {
                         control={lastFmForm.control}
                         name="lastFmPassword"
                         render={({ field }) => (
-                          <FormItem>
+                          <FormItem className="flex flex-col">
                             <FormLabel className="text-xs">
                               Last.fm Password
                             </FormLabel>
