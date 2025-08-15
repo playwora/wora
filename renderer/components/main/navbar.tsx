@@ -232,7 +232,7 @@ const Navbar = () => {
           <div className="wora-border flex w-18 flex-col items-center gap-10 rounded-2xl p-8">
             {navLinks.map((link) => (
               <Tooltip key={link.href} delayDuration={0}>
-                <TooltipTrigger>
+                <TooltipTrigger asChild>
                   <Button
                     variant="ghost"
                     className={isActive(link.href) && "opacity-100"}
@@ -253,7 +253,7 @@ const Navbar = () => {
             ))}
 
             <Tooltip delayDuration={0}>
-              <TooltipTrigger>
+              <TooltipTrigger asChild>
                 <Button variant="ghost" onClick={openSearch}>
                   <IconSearch stroke={2} className="w-5" />
                 </Button>
@@ -264,7 +264,7 @@ const Navbar = () => {
             </Tooltip>
           </div>
           <Tooltip delayDuration={0}>
-            <TooltipTrigger>
+            <TooltipTrigger asChild>
               <Button variant="ghost" onClick={handleThemeToggle}>
                 {renderIcon()}
               </Button>

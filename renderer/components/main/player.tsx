@@ -1151,7 +1151,7 @@ export const Player = () => {
 
                 <div className="flex">
                   <Tooltip delayDuration={0}>
-                    <TooltipTrigger>
+                    <TooltipTrigger asChild>
                       <Button
                         variant="ghost"
                         className="opacity-100! flex justify-center items-center"
