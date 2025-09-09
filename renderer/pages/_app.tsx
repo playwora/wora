@@ -7,18 +7,39 @@ import { useRouter } from "next/router";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/themeProvider";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { initializeI18n } from "@/i18n";
+import type { AppProps } from "next/app";
 
 const SPECIAL_LAYOUTS = ["/setup"];
 
-export default function App({ Component, pageProps }) {
+export default function App({ Component, pageProps }: AppProps) {
   const router = useRouter();
   const scrollAreaRef = useRef<HTMLDivElement>(null);
-
   const isSpecialLayout = SPECIAL_LAYOUTS.includes(router.pathname);
+  const [i18nReady, setI18nReady] = useState(false);
+
+  // Todos los hooks siempre arriba
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.ipc) {
+      window.ipc.invoke("getSettings").then((settings) => {
+        const userLang =
+          settings?.language ||
+          (window.navigator.language
+            ? window.navigator.language.split("-")[0]
+            : "en");
+        initializeI18n(userLang);
+        setI18nReady(true);
+      });
+    }
+  }, []);
 
   useEffect(() => {
-    if (!isSpecialLayout) {
+    if (
+      typeof window !== "undefined" &&
+      window.ipc &&
+      !isSpecialLayout
+    ) {
       Promise.all([
         window.ipc
           .invoke("getSettings")
@@ -29,6 +50,9 @@ export default function App({ Component, pageProps }) {
       ]).catch((err) => console.error("Error in data preloading:", err));
     }
   }, [isSpecialLayout, router.pathname]);
+
+  // Los returns condicionales después de los hooks
+  if (!i18nReady) return null;
 
   if (isSpecialLayout) {
     return (
@@ -52,12 +76,10 @@ export default function App({ Component, pageProps }) {
           <div className="h-dvh w-dvw">
             <Actions />
             <Toaster position="top-right" />
-
             <div className="flex gap-8">
               <div className="sticky top-0 z-50 h-dvh p-8 pt-12 pr-0">
                 <Navbar />
               </div>
-
               <div className="h-dvh grow p-8 pt-12 pl-0">
                 <div className="wora-transition relative flex h-full w-full flex-col">
                   <ScrollArea
@@ -67,7 +89,6 @@ export default function App({ Component, pageProps }) {
                     <Component key={router.pathname} {...pageProps} />
                     <div className="h-[20vh] w-full" />
                   </ScrollArea>
-
                   <Player />
                 </div>
               </div>

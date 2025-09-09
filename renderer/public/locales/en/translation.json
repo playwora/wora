@@ -1,0 +1,9 @@
+{
+  "home": {
+    "title": "Home",
+    "subtitle": "The coolest music library in the world.",
+    "shuffle_all": "Shuffle All Songs",
+    "recently_added": "Recently Added",
+    "view_all": "View All"
+  }
+}

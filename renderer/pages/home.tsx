@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { IconArrowsShuffle2 } from "@tabler/icons-react";
 import { usePlayer } from "@/context/playerContext";
 import Link from "next/link";
+import { useTranslation } from "react-i18next";
 
 export default function Home() {
   const [library, setLibrary] = useState<any | null>([]);
@@ -19,6 +20,7 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const { setQueueAndPlay } = usePlayer();
   const songsRef = useRef(null);
+  const { t } = useTranslation();
 
   useEffect(() => {
     window.ipc.invoke("getRandomLibraryItems").then((response) => {
@@ -85,10 +87,8 @@ export default function Home() {
     <div className="flex flex-col gap-8">
       <div className="flex flex-row items-center justify-between">
         <div className="flex flex-col">
-          <div className="mt-4 text-lg leading-6 font-medium">Home</div>
-          <div className="opacity-50">
-            The coolest music library in the world.
-          </div>
+          <div className="mt-4 text-lg leading-6 font-medium">{t("home.title")}</div>
+          <div className="opacity-50">{t("home.subtitle")}</div>
         </div>
         <Button
           onClick={handleShuffleAllSongs}
@@ -96,7 +96,7 @@ export default function Home() {
           disabled={isLoading}
         >
           <IconArrowsShuffle2 stroke={2} size={16} />
-          Shuffle All Songs
+          {t("home.shuffle_all")}
         </Button>
       </div>
       {library?.albums && library.albums.length > 5 && (
@@ -121,9 +121,9 @@ export default function Home() {
       )}
       <div>
         <div className="mb-2 flex items-center justify-between">
-          <h3 className="text-sm font-medium">Recently Added</h3>
+          <h3 className="text-sm font-medium">{t("home.recently_added")}</h3>
           <Button variant="ghost" className="text-xs" asChild>
-            <Link href="/songs">View All</Link>
+            <Link href="/songs">{t("home.view_all")}</Link>
           </Button>
         </div>
         <Songs

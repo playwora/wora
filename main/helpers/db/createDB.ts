@@ -13,6 +13,7 @@ export const initDatabase = async () => {
         name TEXT,
         profilePicture TEXT,
         musicFolder TEXT
+        language TEXT DEFAULT 'en'
       );
       CREATE TABLE IF NOT EXISTS albums (
         id INTEGER PRIMARY KEY,

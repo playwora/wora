@@ -32,6 +32,7 @@ import { useRouter } from "next/router";
 import { usePlayer } from "@/context/playerContext";
 import Spinner from "@/components/ui/spinner";
 import { useTheme } from "next-themes";
+import { useTranslation } from "react-i18next";
 
 type Settings = {
   name: string;
@@ -54,6 +55,8 @@ const Navbar = () => {
   const { setQueueAndPlay } = usePlayer();
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  const { t, i18n } = useTranslation();
+
 
   useEffect(() => {
     setMounted(true);
