@@ -296,9 +296,6 @@ const Navbar = () => {
               <TooltipTrigger>
                 <Button variant="ghost" onClick={() => setOpenLanguageDialog(true)}>
                   <IconLanguage stroke={2} className="w-5" />
-                  <span className="ml-1 text-xs">
-                    {supportedLanguages.find(l => l.code === language)?.flag}
-                  </span>
                 </Button>
               </TooltipTrigger>
               <TooltipContent side="right" sideOffset={25}>
