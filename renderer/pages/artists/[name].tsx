@@ -8,6 +8,7 @@ import {
 } from "@tabler/icons-react";
 import { usePlayer } from "@/context/playerContext";
 import Songs from "@/components/ui/songs";
+import { useTranslation } from "react-i18next";
 
 type Album = {
   id: number;
@@ -26,6 +27,7 @@ type Artist = {
 };
 
 export default function ArtistView() {
+  const { t } = useTranslation();
   const router = useRouter();
   const [artist, setArtist] = useState<Artist | null>(null);
   const [activeTab, setActiveTab] = useState("albums");
@@ -35,16 +37,12 @@ export default function ArtistView() {
   // Disable scroll restoration on mount and route change
   useEffect(() => {
     if (typeof window !== "undefined") {
-      // Force scroll to top
       window.scrollTo(0, 0);
 
-      // Disable scroll restoration for this page
       if (history.scrollRestoration) {
         history.scrollRestoration = "manual";
       }
     }
-
-    // Cleanup - reset when leaving the page
     return () => {
       if (history.scrollRestoration) {
         history.scrollRestoration = "auto";
@@ -54,10 +52,7 @@ export default function ArtistView() {
 
   useEffect(() => {
     if (!router.query.name) return;
-
-    // Decode the artist name from the URL
     const artistName = decodeURIComponent(router.query.name as string);
-
     window.ipc.invoke("getArtistWithAlbums", artistName).then((response) => {
       setArtist(response);
     });
@@ -75,7 +70,6 @@ export default function ArtistView() {
     }
   };
 
-  // Get a representative album cover for the artist
   const getArtistCover = () => {
     if (artist?.albums && artist.albums.length > 0) {
       const albumWithCover = artist.albums.find((album) => album.cover);
@@ -90,7 +84,7 @@ export default function ArtistView() {
     <>
       <div className="relative h-96 w-full overflow-hidden rounded-2xl">
         <Image
-          alt={artist ? artist.name : "Artist Cover"}
+          alt={artist ? artist.name : t("artist.cover_alt")}
           src={getArtistCover()}
           fill
           loading="lazy"
@@ -100,7 +94,7 @@ export default function ArtistView() {
           <div className="flex items-end gap-4">
             <div className="relative h-52 w-52 overflow-hidden rounded-xl shadow-lg transition duration-300">
               <Image
-                alt={artist ? artist.name : "Artist Cover"}
+                alt={artist ? artist.name : t("artist.cover_alt")}
                 src={getArtistCover()}
                 fill
                 loading="lazy"
@@ -111,9 +105,9 @@ export default function ArtistView() {
               <div>
                 <h1 className="text-4xl font-bold">{artist?.name}</h1>
                 <p className="flex items-center gap-2 text-sm">
-                  {artist?.albums?.length || 0} Albums
+                  {(artist?.albums?.length || 0) + " " + t("artist.info.albums")}
                   <IconCircleFilled stroke={2} size={5} />
-                  {artist?.songs?.length || 0} Songs
+                  {(artist?.songs?.length || 0) + " " + t("artist.info.songs")}
                 </p>
               </div>
               <div className="flex gap-2">
@@ -126,14 +120,14 @@ export default function ArtistView() {
                     stroke={2}
                     size={16}
                   />
-                  Play
+                  {t("artist.actions.play")}
                 </button>
                 <button
                   onClick={playAllSongsAndShuffle}
                   className="flex items-center gap-2 rounded-full bg-black/10 px-4 py-2 text-sm font-medium hover:bg-black/20 dark:bg-white/10 dark:hover:bg-white/20"
                 >
                   <IconArrowsShuffle2 stroke={2} size={16} />
-                  Shuffle
+                  {t("artist.actions.shuffle")}
                 </button>
               </div>
             </div>
@@ -152,7 +146,7 @@ export default function ArtistView() {
             }`}
             onClick={() => setActiveTab("albums")}
           >
-            Albums
+            {t("artist.tabs.albums")}
           </button>
           <button
             className={`px-4 pb-4 text-sm font-medium ${
@@ -162,7 +156,7 @@ export default function ArtistView() {
             }`}
             onClick={() => setActiveTab("songs")}
           >
-            Songs
+            {t("artist.tabs.songs")}
           </button>
         </div>
 
@@ -191,7 +185,7 @@ export default function ArtistView() {
                     {album.name}
                   </p>
                   <p className="text-xs opacity-50">
-                    {album.year || "Unknown"}
+                    {album.year || t("artist.info.unknown_year")}
                   </p>
                 </div>
               </div>

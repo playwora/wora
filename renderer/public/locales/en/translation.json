@@ -5,5 +5,234 @@
     "shuffle_all": "Shuffle All Songs",
     "recently_added": "Recently Added",
     "view_all": "View All"
+  },
+  "playlists": {
+    "title": "Playlists",
+    "subtitle": "Most awesome, epic playlists created by you.",
+    "create_button": "Create Playlist",
+    "cover_alt": "Playlist Cover",
+    "cover_preview": "Cover Preview",
+    "dialog": {
+      "create_title": "Create Playlist",
+      "create_description": "Add a new playlist to your library."
+    },
+    "form": {
+      "name_placeholder": "Name",
+      "description_placeholder": "Description",
+      "submit_button": "Create Playlist"
+    },
+    "errors": {
+      "create_failed": "Failed to create playlist. Please try again.",
+      "name_too_short": "Playlist name must be at least 2 characters."
+    }
+  },
+  "songs": {
+    "title": "Songs",
+    "subtitle": "All your songs in one place, ready to be sorted and filtered.",
+    "play_all": "Play All",
+    "shuffle": "Shuffle",
+    "search_placeholder": "Search by song, artist or album...",
+    "sort_by": "Sort by",
+    "sort_title": "Song Title",
+    "sort_artist": "Artist",
+    "sort_album": "Album",
+    "sort_duration": "Duration",
+    "unknown_album": "Unknown Album",
+    "unknown_artist": "Unknown Artist",
+    "no_results": "No songs matching your search",
+    "no_songs": "No songs found in your library"
+  },
+  "albums": {
+    "title": "Albums",
+    "subtitle": "All of your albums in one place.",
+    "search_placeholder": "Search by album title or artist name...",
+    "sort_by": "Sort by",
+    "sort_title": "Album Title",
+    "sort_artist": "Artist Name",
+    "sort_year": "Release Year",
+    "sort_duration": "Album Duration",
+    "no_results": "No albums matching your search",
+    "no_albums": "No albums found in your library"
+  },
+  "settings": {
+    "title": "Settings",
+    "subtitle": "You're on your own here.",
+    "default_name": "Wora User",
+    "default_description": "A great listener of music.",
+    "form": {
+      "username_placeholder": "A username would be great.",
+      "picture_placeholder": "Picture",
+      "save_button": "Save",
+      "update_music_folder": "Update Music Folder"
+    },
+    "stats": {
+      "songs": "Songs",
+      "albums": "Albums",
+      "playlists": "Playlists"
+    },
+    "success": {
+      "updated": "Your settings are updated.",
+      "rescanned": "Your library is rescanned.",
+      "music_folder_updated": "Your music folder is updated."
+    },
+    "errors": {
+      "upload_failed": "Failed to upload profile picture. Using existing picture.",
+      "username_too_short": "Username must be at least 2 characters long."
+    },
+    "lastfm": {
+      "title": "Last.fm Integration",
+      "description": "Scrobble your played tracks to Last.fm",
+      "connected_as": "Connected as: {{username}}",
+      "view_profile": "View profile ({{count}} scrobbles)",
+      "logout": "Logout",
+      "scrobble_threshold": "Scrobble Threshold: {{value}}%",
+      "scrobble_description": "Track will scrobble after playing this percentage of its length",
+      "save_settings": "Save Last.fm Settings",
+      "connect_title": "Connect to Last.fm",
+      "connect_subtitle": "Connect your Last.fm account to scrobble tracks",
+      "username": "Last.fm Username",
+      "username_placeholder": "Username",
+      "password": "Last.fm Password",
+      "password_placeholder": "Password",
+      "connect_button": "Connect to Last.fm",
+      "connecting": "Connecting",
+      "success": {
+        "connected": "Successfully connected to Last.fm!",
+        "disconnected": "Successfully disconnected from Last.fm",
+        "settings_updated": "Last.fm settings updated successfully."
+      },
+      "errors": {
+        "connect_failed": "Failed to connect to Last.fm. Check your credentials.",
+        "connect_error": "An error occurred while connecting to Last.fm.",
+        "disconnect_failed": "Failed to disconnect from Last.fm",
+        "update_failed": "Failed to update Last.fm settings.",
+        "lastfm_username_required": "Username is required.",
+        "lastfm_password_required": "Password is required."
+      }
+    }
+  },
+  "setup": {
+    "subtitle": "A beautiful player for audiophiles 🎧",
+    "select_folder": "Select Music Folder",
+    "errors": {
+      "music_folder_failed": "Failed to set up music folder. Please try again."
+    }
+  },
+  "playlist": {
+    "actions": {
+      "play": "Play",
+      "shuffle": "Shuffle",
+      "edit": "Edit"
+    },
+    "songs": {
+      "remove": "Remove from Playlist",
+      "removed": "Song removed from playlist"
+    },
+    "edit": {
+      "title": "Update Playlist",
+      "subtitle": "Update your existing playlist",
+      "name_placeholder": "Name",
+      "description_placeholder": "Description",
+      "delete": "Delete Playlist",
+      "update": "Update Playlist"
+    },
+    "delete": {
+      "title": "Confirm Delete",
+      "subtitle": "Are you sure you want to delete this playlist? This action cannot be undone.",
+      "cancel": "Cancel",
+      "confirm": "Delete"
+    },
+    "success": {
+      "updated": "Playlist updated successfully",
+      "deleted": "Playlist deleted successfully."
+    },
+    "errors": {
+      "load_failed": "Failed to load playlist",
+      "update_failed": "Failed to update playlist",
+      "delete_failed": "Failed to delete playlist: {{error}}"
+    }
+  },
+  "artist": {
+    "cover_alt": "Artist Cover",
+    "actions": {
+      "play": "Play",
+      "shuffle": "Shuffle"
+    },
+    "info": {
+      "albums": "Albums",
+      "songs": "Songs",
+      "unknown_year": "Unknown"
+    },
+    "tabs": {
+      "albums": "Albums",
+      "songs": "Songs"
+    }
+  },
+  "album": {
+    "cover_alt": "Album Cover",
+    "unknown_year": "Unknown",
+    "actions": {
+      "play": "Play",
+      "shuffle": "Shuffle"
+    }
+  },
+  "navbar": {
+    "links": {
+      "home": "Home",
+      "playlists": "Playlists",
+      "songs": "Songs",
+      "albums": "Albums"
+    },
+    "search": {
+      "open": "Search",
+      "placeholder": "Search for a song, album or playlist...",
+      "results": "Search Results",
+      "types": {
+        "artist": "Artist",
+        "playlist": "Playlist",
+        "album": "Album",
+        "song": "Song"
+      }
+    },
+    "theme": "Theme",
+    "language": "Language",
+    "language_search": "Search language...",
+    "available_languages": "Available Languages",
+    "selected": "Selected",
+    "defaultUser": "Wora User"
+  },
+  "player": {
+    "queue": "Queue",
+    "history": "History",
+    "queue_empty": "Queue is empty",
+    "no_history": "No playback history",
+    "song_added_to_playlist": "Song added to playlist",
+    "song_already_in_playlist": "Song already exists in playlist",
+    "failed_to_add_to_playlist": "Failed to add song to playlist",
+    "failed_to_load_audio": "Failed to load audio",
+    "go_to_album": "Go to Album",
+    "add_to_playlist": "Add to Playlist",
+    "default_song_name": "Echoes of Emptiness",
+    "default_artist_name": "The Void Ensemble",
+    "lastfm_scrobbled": "Scrobbled to Last.fm",
+    "lastfm_now_playing": "Now playing on Last.fm",
+    "lastfm_will_scrobble_at": "Will scrobble at {{threshold}}%",
+    "add_to_favorites": "Add to Favorites",
+    "remove_from_favorites": "Remove from Favorites",
+    "track_information": "Track Information",
+    "track_information_description": "Details for your currently playing song",
+    "artist": "Artist",
+    "album": "Album",
+    "codec": "Codec",
+    "sample": "Sample",
+    "duration": "Duration",
+    "genre": "Genre",
+    "unknown": "Unknown",
+    "lossless_format": "Lossless [{{bitsPerSample}}/{{sampleRate}}kHz]",
+    "lossy_audio": "Lossy Audio",
+    "error": "Error",
+    "scrobbled": "Scrobbled",
+    "now_playing_will_scrobble": "Now playing (will scrobble at {{threshold}}%)",
+    "waiting_to_scrobble": "Waiting to scrobble at {{threshold}}%"
   }
 }

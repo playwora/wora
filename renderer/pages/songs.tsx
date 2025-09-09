@@ -19,8 +19,11 @@ import {
 } from "@tabler/icons-react";
 import { Input } from "@/components/ui/input";
 import songCache from "@/lib/songCache";
+import { useTranslation } from "react-i18next";
 
 export default function AllSongs() {
+  const { t } = useTranslation();
+
   // Initialize state from the global song cache
   const [songs, setSongs] = useState(songCache.getAllSongs());
   const [filteredSongs, setFilteredSongs] = useState(
@@ -127,8 +130,8 @@ export default function AllSongs() {
             ...song,
             album: {
               id: song.album?.id || null,
-              name: song.album?.name || "Unknown Album",
-              artist: song.album?.artist || "Unknown Artist",
+              name: song.album?.name || t("songs.unknown_album"),
+              artist: song.album?.artist || t("songs.unknown_artist"),
               cover: song.album?.cover || null,
               year: song.album?.year || null,
             },
@@ -179,7 +182,7 @@ export default function AllSongs() {
         setLoading(false);
       }
     },
-    [page, loading, hasMore, songs, searchTerm, sortBy, sortOrder],
+    [page, loading, hasMore, songs, searchTerm, sortBy, sortOrder, t],
   );
 
   // Handle search with debounce
@@ -214,8 +217,8 @@ export default function AllSongs() {
               ...song,
               album: {
                 id: song.album?.id || null,
-                name: song.album?.name || "Unknown Album",
-                artist: song.album?.artist || "Unknown Artist",
+                name: song.album?.name || t("songs.unknown_album"),
+                artist: song.album?.artist || t("songs.unknown_artist"),
                 cover: song.album?.cover || null,
                 year: song.album?.year || null,
               },
@@ -251,7 +254,7 @@ export default function AllSongs() {
         }
       }, 300);
     },
-    [songs, sortBy, sortOrder],
+    [songs, sortBy, sortOrder, t],
   );
 
   // Handle shuffle all songs
@@ -280,8 +283,8 @@ export default function AllSongs() {
             ...song,
             album: {
               id: song.album?.id || null,
-              name: song.album?.name || "Unknown Album",
-              artist: song.album?.artist || "Unknown Artist",
+              name: song.album?.name || t("songs.unknown_album"),
+              artist: song.album?.artist || t("songs.unknown_artist"),
               cover: song.album?.cover || null,
             },
           }));
@@ -331,8 +334,8 @@ export default function AllSongs() {
             ...song,
             album: {
               id: song.album?.id || null,
-              name: song.album?.name || "Unknown Album",
-              artist: song.album?.artist || "Unknown Artist",
+              name: song.album?.name || t("songs.unknown_album"),
+              artist: song.album?.artist || t("songs.unknown_artist"),
               cover: song.album?.cover || null,
             },
           }));
@@ -393,8 +396,8 @@ export default function AllSongs() {
               ...song,
               album: {
                 id: song.album?.id || null,
-                name: song.album?.name || "Unknown Album",
-                artist: song.album?.artist || "Unknown Artist",
+                name: song.album?.name || t("songs.unknown_album"),
+                artist: song.album?.artist || t("songs.unknown_artist"),
                 cover: song.album?.cover || null,
               },
             }));
@@ -432,7 +435,7 @@ export default function AllSongs() {
 
       fetchAndSortAllSongs();
     }
-  }, [sortBy, sortOrder]);
+  }, [sortBy, sortOrder, t]);
 
   // Toggle sort order
   const toggleSortOrder = () => {
@@ -461,9 +464,11 @@ export default function AllSongs() {
       <div className="flex flex-col gap-8">
         <div className="flex w-full items-center justify-between">
           <div className="flex flex-col">
-            <div className="mt-4 text-lg font-medium leading-6">Songs</div>
+            <div className="mt-4 text-lg font-medium leading-6">
+              {t("songs.title")}
+            </div>
             <div className="opacity-50">
-              All your songs in one place, ready to be sorted and filtered.
+              {t("songs.subtitle")}
             </div>
           </div>
           <div className="flex items-center gap-4">
@@ -472,7 +477,7 @@ export default function AllSongs() {
               className="flex items-center gap-2"
               disabled={isLoadingInitial || filteredSongs.length === 0}
             >
-              Play All
+              {t("songs.play_all")}
             </Button>
             <Button
               onClick={handleShuffleAllSongs}
@@ -480,7 +485,7 @@ export default function AllSongs() {
               disabled={isLoadingInitial || filteredSongs.length === 0}
             >
               <IconArrowsShuffle2 stroke={2} size={16} />
-              Shuffle
+              {t("songs.shuffle")}
             </Button>
           </div>
         </div>
@@ -489,7 +494,7 @@ export default function AllSongs() {
         <div className="flex w-full items-center gap-4">
           <div className="relative w-full max-w-md">
             <Input
-              placeholder="Search by song, artist or album..."
+              placeholder={t("songs.search_placeholder")}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-8 pr-8"
@@ -509,13 +514,13 @@ export default function AllSongs() {
           <div className="flex items-center gap-2">
             <Select value={sortBy} onValueChange={setSortBy}>
               <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Sort by" />
+                <SelectValue placeholder={t("songs.sort_by")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="name">Song Title</SelectItem>
-                <SelectItem value="artist">Artist</SelectItem>
-                <SelectItem value="album">Album</SelectItem>
-                <SelectItem value="duration">Duration</SelectItem>
+                <SelectItem value="name">{t("songs.sort_title")}</SelectItem>
+                <SelectItem value="artist">{t("songs.sort_artist")}</SelectItem>
+                <SelectItem value="album">{t("songs.sort_album")}</SelectItem>
+                <SelectItem value="duration">{t("songs.sort_duration")}</SelectItem>
               </SelectContent>
             </Select>
             <Button variant="ghost" onClick={toggleSortOrder} className="px-2">
@@ -545,8 +550,8 @@ export default function AllSongs() {
             ) : (
               <div className="flex w-full items-center justify-center p-10 text-gray-500">
                 {searchTerm
-                  ? "No songs matching your search"
-                  : "No songs found in your library"}
+                  ? t("songs.no_results")
+                  : t("songs.no_songs")}
               </div>
             )}
           </>

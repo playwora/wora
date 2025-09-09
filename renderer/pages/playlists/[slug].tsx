@@ -34,11 +34,12 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import Songs from "@/components/ui/songs";
 import { ContextMenuItem } from "@/components/ui/context-menu";
+import { useTranslation } from "react-i18next";
 
 // Form validation schema
 const formSchema = z.object({
   name: z.string().min(2, {
-    message: "Playlist name must be at least 2 characters.",
+    message: "playlists.errors.name_too_short",
   }),
   description: z.string().optional(),
 });
@@ -53,6 +54,7 @@ type Playlist = {
 };
 
 export default function Playlist() {
+  const { t } = useTranslation();
   const router = useRouter();
   const [playlist, setPlaylist] = useState<Playlist | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -99,7 +101,7 @@ export default function Playlist() {
       toast(
         <div className="flex w-fit items-center gap-2 text-xs">
           <IconX className="text-red-500" stroke={2} size={16} />
-          Failed to load playlist
+          {t("playlist.errors.load_failed")}
         </div>,
       );
     }
@@ -121,7 +123,7 @@ export default function Playlist() {
         toast(
           <div className="flex w-fit items-center gap-2 text-xs">
             <IconCheck className="text-green-400" stroke={2} size={16} />
-            Song removed from playlist
+            {t("playlist.songs.removed")}
           </div>,
         );
         fetchPlaylistData();
@@ -145,7 +147,7 @@ export default function Playlist() {
         toast(
           <div className="flex w-fit items-center gap-2 text-xs">
             <IconCheck className="text-green-400" stroke={2} size={16} />
-            Playlist updated successfully
+            {t("playlist.success.updated")}
           </div>,
         );
       }
@@ -154,7 +156,7 @@ export default function Playlist() {
       toast(
         <div className="flex w-fit items-center gap-2 text-xs">
           <IconX className="text-red-500" stroke={2} size={16} />
-          Failed to update playlist
+          {t("playlist.errors.update_failed")}
         </div>,
       );
     } finally {
@@ -170,12 +172,12 @@ export default function Playlist() {
       toast(
         <div className="flex w-fit items-center gap-2 text-xs">
           <IconCheck className="text-green-400" stroke={2} size={16} />
-          Playlist deleted successfully.
+          {t("playlist.success.deleted")}
         </div>,
       );
       await router.push("/playlists");
     } catch (err) {
-      toast.error(`Failed to delete playlist: ${err.message}`);
+      toast.error(t("playlist.errors.delete_failed", { error: err.message }));
     } finally {
       setLoading(false);
     }
@@ -187,7 +189,7 @@ export default function Playlist() {
       onClick={() => removeSongFromPlaylist(song.id)}
     >
       <IconX stroke={2} size={14} />
-      Remove from Playlist
+      {t("playlist.songs.remove")}
     </ContextMenuItem>
   );
 
@@ -244,14 +246,14 @@ export default function Playlist() {
                     stroke={2}
                     size={16}
                   />{" "}
-                  Play
+                  {t("playlist.actions.play")}
                 </Button>
                 <Button className="w-fit" onClick={() => playPlaylist(true)}>
-                  <IconArrowsShuffle2 stroke={2} size={16} /> Shuffle
+                  <IconArrowsShuffle2 stroke={2} size={16} /> {t("playlist.actions.shuffle")}
                 </Button>
                 {playlist.id !== 1 && (
                   <Button className="w-fit" onClick={() => setDialogOpen(true)}>
-                    <IconStar stroke={2} size={16} /> Edit
+                    <IconStar stroke={2} size={16} /> {t("playlist.actions.edit")}
                   </Button>
                 )}
               </div>
@@ -269,8 +271,8 @@ export default function Playlist() {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Update Playlist</DialogTitle>
-            <DialogDescription>Update your existing playlist</DialogDescription>
+            <DialogTitle>{t("playlist.edit.title")}</DialogTitle>
+            <DialogDescription>{t("playlist.edit.subtitle")}</DialogDescription>
           </DialogHeader>
           <Form {...form}>
             <form
@@ -298,7 +300,7 @@ export default function Playlist() {
                   render={({ field }) => (
                     <FormItem className="w-full">
                       <FormControl>
-                        <Input placeholder="Name" {...field} />
+                        <Input placeholder={t("playlist.edit.name_placeholder")} {...field} />
                       </FormControl>
                       <FormMessage className="text-xs" />
                     </FormItem>
@@ -310,7 +312,7 @@ export default function Playlist() {
                   render={({ field }) => (
                     <FormItem className="w-full">
                       <FormControl>
-                        <Input placeholder="Description" {...field} />
+                        <Input placeholder={t("playlist.edit.description_placeholder")} {...field} />
                       </FormControl>
                       <FormMessage className="text-xs" />
                     </FormItem>
@@ -324,7 +326,7 @@ export default function Playlist() {
                     onClick={() => setConfirmDeleteOpen(true)}
                     disabled={loading}
                   >
-                    Delete Playlist
+                    {t("playlist.edit.delete")}
                     {loading ? (
                       <Spinner className="h-3.5 w-3.5" />
                     ) : (
@@ -336,7 +338,7 @@ export default function Playlist() {
                     type="submit"
                     disabled={loading}
                   >
-                    Update Playlist
+                    {t("playlist.edit.update")}
                     {loading ? (
                       <Spinner className="h-3.5 w-3.5" />
                     ) : (
@@ -352,10 +354,9 @@ export default function Playlist() {
       <Dialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Confirm Delete</DialogTitle>
+            <DialogTitle>{t("playlist.delete.title")}</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete this playlist? This action cannot
-              be undone.
+              {t("playlist.delete.subtitle")}
             </DialogDescription>
           </DialogHeader>
           <div className="flex justify-end gap-2 pt-2">
@@ -365,7 +366,7 @@ export default function Playlist() {
               onClick={() => setConfirmDeleteOpen(false)}
               disabled={loading}
             >
-              Cancel
+              {t("playlist.delete.cancel")}
             </Button>
             <Button
               className="w-fit justify-between text-xs"
@@ -377,7 +378,7 @@ export default function Playlist() {
               }}
               disabled={loading}
             >
-              {loading ? <Spinner className="h-3.5 w-3.5" /> : "Delete"}
+              {loading ? <Spinner className="h-3.5 w-3.5" /> : t("playlist.delete.confirm")}
             </Button>
           </div>
         </DialogContent>

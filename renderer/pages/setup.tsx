@@ -6,8 +6,10 @@ import { useRouter } from "next/router";
 import Spinner from "@/components/ui/spinner";
 import { useState } from "react";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 
 export default function Setup() {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
@@ -26,7 +28,7 @@ export default function Setup() {
       })
       .catch((error) => {
         console.error("Error setting up music folder:", error);
-        toast("Failed to set up music folder. Please try again.");
+        toast(t("setup.errors.music_folder_failed"));
         setLoading(false);
       });
   };
@@ -53,7 +55,7 @@ export default function Setup() {
               className="block dark:hidden"
             />
             <div className="flex items-center text-sm opacity-50">
-              A beautiful player for audiophiles 🎧
+              {t("setup.subtitle")}
             </div>
           </div>
           <Button
@@ -61,7 +63,7 @@ export default function Setup() {
             onClick={handleSelectMusicFolder}
             disabled={loading}
           >
-            Select Music Folder
+            {t("setup.select_folder")}
             {loading ? (
               <Spinner className="h-3.5 w-3.5" />
             ) : (

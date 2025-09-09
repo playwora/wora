@@ -12,6 +12,7 @@ import { usePlayer } from "@/context/playerContext";
 import Songs from "@/components/ui/songs";
 import Link from "next/link";
 import { convertTime } from "@/lib/helpers";
+import { useTranslation } from "react-i18next";
 
 type Album = {
   name: string;
@@ -23,24 +24,19 @@ type Album = {
 };
 
 export default function Album() {
+  const { t } = useTranslation();
   const router = useRouter();
   const [album, setAlbum] = useState<Album | null>(null);
   const { setQueueAndPlay } = usePlayer();
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Disable scroll restoration on mount and route change
   useEffect(() => {
     if (typeof window !== "undefined") {
-      // Force scroll to top
       window.scrollTo(0, 0);
-
-      // Disable scroll restoration for this page
       if (history.scrollRestoration) {
         history.scrollRestoration = "manual";
       }
     }
-
-    // Cleanup - reset when leaving the page
     return () => {
       if (history.scrollRestoration) {
         history.scrollRestoration = "auto";
@@ -50,7 +46,6 @@ export default function Album() {
 
   useEffect(() => {
     if (!router.query.slug) return;
-
     window.ipc
       .invoke("getAlbumWithSongs", router.query.slug)
       .then((response) => {
@@ -70,12 +65,9 @@ export default function Album() {
     }
   };
 
-  // Calculate total duration from songs if not provided by the backend
   const calculateTotalDuration = () => {
     if (!album) return 0;
-
     if (album.duration) return album.duration;
-
     return (
       album.songs?.reduce((total, song) => total + (song.duration || 0), 0) || 0
     );
@@ -85,7 +77,7 @@ export default function Album() {
     <>
       <div className="relative h-96 w-full overflow-hidden rounded-2xl">
         <Image
-          alt={album ? album.name : "Album Cover"}
+          alt={album ? album.name : t("album.cover_alt")}
           src={album ? `wora://${album.cover}` : "/coverArt.png"}
           fill
           loading="lazy"
@@ -95,7 +87,7 @@ export default function Album() {
           <div className="flex items-end gap-4">
             <div className="relative h-52 w-52 overflow-hidden rounded-xl shadow-lg transition duration-300">
               <Image
-                alt={album ? album.name : "Album Cover"}
+                alt={album ? album.name : t("album.cover_alt")}
                 src={album ? `wora://${album.cover}` : "/coverArt.png"}
                 fill
                 loading="lazy"
@@ -118,7 +110,7 @@ export default function Album() {
                     </span>
                   </Link>
                   <IconCircleFilled stroke={2} size={5} />{" "}
-                  {album && album.year ? album.year : "Unknown"}
+                  {album && album.year ? album.year : t("album.unknown_year")}
                   <IconCircleFilled stroke={2} size={5} />{" "}
                   <span className="flex items-center gap-1">
                     <IconClock size={14} stroke={2} />
@@ -133,10 +125,10 @@ export default function Album() {
                     stroke={2}
                     size={16}
                   />{" "}
-                  Play
+                  {t("album.actions.play")}
                 </Button>
                 <Button className="w-fit" onClick={playAlbumAndShuffle}>
-                  <IconArrowsShuffle2 stroke={2} size={16} /> Shuffle
+                  <IconArrowsShuffle2 stroke={2} size={16} /> {t("album.actions.shuffle")}
                 </Button>
               </div>
             </div>
