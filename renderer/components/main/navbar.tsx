@@ -8,6 +8,7 @@ import {
   IconSun,
   IconVinyl,
   IconUser,
+  IconLanguage,
 } from "@tabler/icons-react";
 import {
   Tooltip,
@@ -32,10 +33,12 @@ import { useRouter } from "next/router";
 import { usePlayer } from "@/context/playerContext";
 import Spinner from "@/components/ui/spinner";
 import { useTheme } from "next-themes";
+import { useTranslation } from "react-i18next";
 
 type Settings = {
   name: string;
   profilePicture: string;
+  language?: string;
 };
 
 type NavLink = {
@@ -43,6 +46,11 @@ type NavLink = {
   icon: React.ReactNode;
   label: string;
 };
+
+const supportedLanguages = [
+  { code: "en", label: "English", flag: "🇬🇧" },
+  { code: "es", label: "Español", flag: "🇪🇸" },
+];
 
 const Navbar = () => {
   const router = useRouter();
@@ -54,6 +62,12 @@ const Navbar = () => {
   const { setQueueAndPlay } = usePlayer();
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  const { t, i18n } = useTranslation();
+
+  // --- Language states ---
+  const [language, setLanguage] = useState<string>("en");
+  const [openLanguageDialog, setOpenLanguageDialog] = useState(false);
+  const [langSearch, setLangSearch] = useState("");
 
   useEffect(() => {
     setMounted(true);
@@ -63,22 +77,22 @@ const Navbar = () => {
     {
       href: "/home",
       icon: <IconInbox stroke={2} className="w-5" />,
-      label: "Home",
+      label: t("navbar.links.home"),
     },
     {
       href: "/playlists",
       icon: <IconVinyl stroke={2} size={20} />,
-      label: "Playlists",
+      label: t("navbar.links.playlists"),
     },
     {
       href: "/songs",
       icon: <IconList stroke={2} size={20} />,
-      label: "Songs",
+      label: t("navbar.links.songs"),
     },
     {
       href: "/albums",
       icon: <IconFocusCentered stroke={2} size={20} />,
-      label: "Albums",
+      label: t("navbar.links.albums"),
     },
   ];
 
@@ -106,7 +120,6 @@ const Navbar = () => {
     if (href === "/home" && router.pathname === "/") {
       return true;
     }
-
     return (
       router.pathname === href ||
       (href !== "/home" && router.pathname.startsWith(href))
@@ -139,6 +152,27 @@ const Navbar = () => {
     [router],
   );
 
+  // ---- Language Setting Load ----
+  useEffect(() => {
+    window.ipc.invoke("getSettings").then((response) => {
+      setSettings(response);
+      if (response?.language && supportedLanguages.find(l => l.code === response.language)) {
+        setLanguage(response.language);
+        i18n.changeLanguage(response.language);
+      }
+    });
+    window.ipc.on("confirmSettingsUpdate", () => {
+      window.ipc.invoke("getSettings").then((response) => {
+        setSettings(response);
+      });
+    });
+    // Sync on manual change (rarely needed, for IPC listeners)
+    window.ipc.on("languageChanged", (_event, lang) => {
+      setLanguage(lang as string);
+      i18n.changeLanguage(lang as string);
+    });
+  }, [i18n]);
+
   useEffect(() => {
     const down = (e) => {
       if (e.key === "f" && (e.metaKey || e.ctrlKey)) {
@@ -146,7 +180,6 @@ const Navbar = () => {
         setOpen((open) => !open);
       }
     };
-
     document.addEventListener("keydown", down);
     return () => document.removeEventListener("keydown", down);
   }, []);
@@ -199,17 +232,12 @@ const Navbar = () => {
     setOpen(false);
   };
 
-  useEffect(() => {
-    window.ipc.invoke("getSettings").then((response) => {
-      setSettings(response);
-    });
-
-    window.ipc.on("confirmSettingsUpdate", () => {
-      window.ipc.invoke("getSettings").then((response) => {
-        setSettings(response);
-      });
-    });
-  }, []);
+  const handleLanguageChange = (lang: string) => {
+    setLanguage(lang);
+    i18n.changeLanguage(lang);
+    window.ipc.invoke("updateSettings", { language: lang });
+    window.ipc.send("languageChanged", lang);
+  };
 
   return (
     <>
@@ -226,7 +254,7 @@ const Navbar = () => {
               </Link>
             </TooltipTrigger>
             <TooltipContent side="right" sideOffset={25}>
-              <p>{settings && settings.name ? settings.name : "Wora User"}</p>
+              <p>{settings && settings.name ? settings.name : t("settings.default_name")}</p>
             </TooltipContent>
           </Tooltip>
           <div className="wora-border flex w-18 flex-col items-center gap-10 rounded-2xl p-8">
@@ -259,7 +287,19 @@ const Navbar = () => {
                 </Button>
               </TooltipTrigger>
               <TooltipContent side="right" sideOffset={50}>
-                <p>Search</p>
+                <p>{t("navbar.search.open")}</p>
+              </TooltipContent>
+            </Tooltip>
+
+            {/* --- Idioma: Botón y Dialog --- */}
+            <Tooltip delayDuration={0}>
+              <TooltipTrigger>
+                <Button variant="ghost" onClick={() => setOpenLanguageDialog(true)}>
+                  <IconLanguage stroke={2} className="w-5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="right" sideOffset={25}>
+                <p>{t("navbar.language")}</p>
               </TooltipContent>
             </Tooltip>
           </div>
@@ -270,16 +310,55 @@ const Navbar = () => {
               </Button>
             </TooltipTrigger>
             <TooltipContent side="right" sideOffset={25}>
-              <p className="capitalize">Theme: {theme}</p>
+              <p className="capitalize">{t("navbar.theme")}: {theme}</p>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
       </div>
 
+      {/* --- Language CommandDialog --- */}
+      <CommandDialog open={openLanguageDialog} onOpenChange={setOpenLanguageDialog}>
+        <Command>
+          <CommandInput
+            placeholder={t("navbar.language_search") || "Search language..."}
+            value={langSearch}
+            onValueChange={setLangSearch}
+          />
+          <CommandList>
+            <CommandGroup heading={t("navbar.available_languages") || "Available Languages"}>
+              {supportedLanguages
+                .filter(lang =>
+                  lang.label.toLowerCase().includes(langSearch.toLowerCase())
+                )
+                .map((lang) => (
+                  <CommandItem
+                    key={lang.code}
+                    value={lang.label.toLowerCase()}
+                    onSelect={() => {
+                      handleLanguageChange(lang.code);
+                      setOpenLanguageDialog(false);
+                      setLangSearch("");
+                    }}
+                    className={language === lang.code ? "font-bold" : ""}
+                  >
+                    <span className="mr-2 text-lg">{lang.flag}</span>
+                    {lang.label}
+                    {language === lang.code && (
+                      <span className="ml-auto text-xs px-2 py-0.5 rounded bg-black/10 dark:bg-white/10 opacity-70">
+                        {t("navbar.selected") || "Selected"}
+                      </span>
+                    )}
+                  </CommandItem>
+                ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </CommandDialog>
+
       <CommandDialog open={open} onOpenChange={setOpen}>
         <Command>
           <CommandInput
-            placeholder="Search for a song, album or playlist..."
+            placeholder={t("navbar.search.placeholder")}
             value={search}
             onValueChange={setSearch}
           />
@@ -290,7 +369,7 @@ const Navbar = () => {
               </div>
             )}
             {search && !loading ? (
-              <CommandGroup heading="Search Results" className="pb-2">
+              <CommandGroup heading={t("navbar.search.results")} className="pb-2">
                 {searchResults.map((item) => (
                   <CommandItem
                     key={`${item.type}-${item.id || item.name}`}
@@ -317,13 +396,13 @@ const Navbar = () => {
                       <div>
                         <p className="w-full overflow-hidden text-xs text-nowrap">
                           {item.name}
-                          <span className="ml-1 opacity-50">({item.type})</span>
+                          <span className="ml-1 opacity-50">({t(`navbar.search.types.${item.type.toLowerCase()}`)})</span>
                         </p>
                         <p className="w-full text-xs opacity-50">
                           {item.type === "Playlist"
                             ? item.description
                             : item.type === "Artist"
-                              ? "Artist"
+                              ? t("navbar.search.types.artist")
                               : item.artist}
                         </p>
                       </div>

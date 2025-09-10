@@ -23,9 +23,11 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 import albumCache from "@/lib/albumCache";
+import { useTranslation } from "react-i18next";
 
 export default function Albums() {
   // Initialize state from the global album cache
+  const { t } = useTranslation();
   const [albums, setAlbums] = useState(albumCache.getAllAlbums());
   const [filteredAlbums, setFilteredAlbums] = useState(
     albumCache.getFilteredAlbums(),
@@ -497,15 +499,19 @@ export default function Albums() {
       <div className="flex flex-col gap-8">
         {/* Header with title and description */}
         <div className="flex flex-col">
-          <div className="mt-4 text-lg leading-6 font-medium">Albums</div>
-          <div className="opacity-50">All of your albums in one place.</div>
+          <div className="mt-4 text-lg leading-6 font-medium">
+            {t("albums.title")}
+          </div>
+          <div className="opacity-50">
+            {t("albums.subtitle")}
+          </div>
         </div>
 
         {/* Search and filter controls */}
         <div className="flex w-full flex-wrap items-center justify-between gap-4">
           <div className="relative w-full max-w-md">
             <Input
-              placeholder="Search by album title or artist name..."
+              placeholder={t("albums.search_placeholder")}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pr-8 pl-8"
@@ -528,13 +534,13 @@ export default function Albums() {
             <div className="flex items-center gap-2">
               <Select value={sortBy} onValueChange={setSortBy}>
                 <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Sort by" />
+                  <SelectValue placeholder={t("albums.sort_by")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="name">Album Title</SelectItem>
-                  <SelectItem value="artist">Artist Name</SelectItem>
-                  <SelectItem value="year">Release Year</SelectItem>
-                  <SelectItem value="duration">Album Duration</SelectItem>
+                  <SelectItem value="name">{t("albums.sort_title")}</SelectItem>
+                  <SelectItem value="artist">{t("albums.sort_artist")}</SelectItem>
+                  <SelectItem value="year">{t("albums.sort_year")}</SelectItem>
+                  <SelectItem value="duration">{t("albums.sort_duration")}</SelectItem>
                 </SelectContent>
               </Select>
               <Button
@@ -574,8 +580,8 @@ export default function Albums() {
             ) : (
               <div className="flex w-full items-center justify-center p-10 text-gray-500">
                 {searchTerm
-                  ? "No albums matching your search"
-                  : "No albums found in your library"}
+                  ? t("albums.no_results")
+                  : t("albums.no_albums")}
               </div>
             )}
 

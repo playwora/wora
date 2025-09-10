@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Label } from "@/components/ui/label";
@@ -26,21 +26,26 @@ import { IconArrowRight, IconPlus, IconX } from "@tabler/icons-react";
 import { useRouter } from "next/router";
 import { Button } from "@/components/ui/button";
 import Spinner from "@/components/ui/spinner";
-
-const formSchema = z.object({
-  name: z.string().min(2, {
-    message: "Playlist name must be at least 2 characters.",
-  }),
-  description: z.string().optional(),
-  playlistCover: z.any().optional(),
-});
+import { useTranslation } from "react-i18next";
 
 export default function Playlists() {
+  const { t } = useTranslation();
   const router = useRouter();
   const [playlists, setPlaylists] = useState<any[]>([]);
   const [previewUrl, setPreviewUrl] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  // El schema dentro de useMemo para que cambie el mensaje de error cuando cambias de idioma
+  const formSchema = useMemo(() =>
+    z.object({
+      name: z.string().min(2, {
+        message: t("playlists.errors.name_too_short"),
+      }),
+      description: z.string().optional(),
+      playlistCover: z.any().optional(),
+    }), [t]
+  );
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -89,7 +94,7 @@ export default function Playlists() {
       toast(
         <div className="flex w-fit items-center gap-2 text-xs">
           <IconX className="text-red-500" stroke={2} size={16} />
-          Failed to create playlist. Please try again.
+          {t("playlists.errors.create_failed")}
         </div>
       );
     } finally {
@@ -101,13 +106,15 @@ export default function Playlists() {
     <div className="flex flex-col gap-8">
       <div className="flex w-full items-center justify-between">
         <div className="flex flex-col">
-          <div className="mt-4 text-lg font-medium leading-6">Playlists</div>
+          <div className="mt-4 text-lg font-medium leading-6">
+            {t("playlists.title")}
+          </div>
           <div className="opacity-50">
-            Most awesome, epic playlists created by you.
+            {t("playlists.subtitle")}
           </div>
         </div>
         <Button variant="default" onClick={() => setDialogOpen(true)}>
-          Create Playlist <IconPlus size={14} />
+          {t("playlists.create_button")} <IconPlus size={14} />
         </Button>
       </div>
       <div className="grid w-full grid-cols-5 gap-8">
@@ -117,7 +124,7 @@ export default function Playlists() {
               <div className="relative flex flex-col justify-between">
                 <div className="relative w-full overflow-hidden rounded-xl pb-[100%] shadow-lg">
                   <Image
-                    alt={pl.name || "Playlist Cover"}
+                    alt={pl.name || t("playlists.cover_alt")}
                     src={
                       pl.id === 1
                         ? "/favouritesCoverArt.png"
@@ -142,9 +149,9 @@ export default function Playlists() {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Create Playlist</DialogTitle>
+            <DialogTitle>{t("playlists.dialog.create_title")}</DialogTitle>
             <DialogDescription>
-              Add a new playlist to your library.
+              {t("playlists.dialog.create_description")}
             </DialogDescription>
           </DialogHeader>
           <Form {...form}>
@@ -163,7 +170,7 @@ export default function Playlists() {
                     >
                       <div className="relative h-36 w-36 overflow-hidden rounded-lg shadow-lg">
                         <Image
-                          alt="Cover Preview"
+                          alt={t("playlists.cover_preview")}
                           src={previewUrl || "/coverArt.png"}
                           fill
                           className="object-cover"
@@ -199,7 +206,10 @@ export default function Playlists() {
                     render={({ field }) => (
                       <FormItem className="w-full">
                         <FormControl>
-                          <Input placeholder="Name" {...field} />
+                          <Input
+                            placeholder={t("playlists.form.name_placeholder")}
+                            {...field}
+                          />
                         </FormControl>
                         <FormMessage className="text-xs" />
                       </FormItem>
@@ -211,7 +221,10 @@ export default function Playlists() {
                     render={({ field }) => (
                       <FormItem className="w-full">
                         <FormControl>
-                          <Input placeholder="Description" {...field} />
+                          <Input
+                            placeholder={t("playlists.form.description_placeholder")}
+                            {...field}
+                          />
                         </FormControl>
                         <FormMessage className="text-xs" />
                       </FormItem>
@@ -223,7 +236,7 @@ export default function Playlists() {
                   type="submit"
                   disabled={loading}
                 >
-                  Create Playlist
+                  {t("playlists.form.submit_button")}
                   {loading ? (
                     <Spinner className="h-3.5 w-3.5" />
                   ) : (

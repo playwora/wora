@@ -1,0 +1,239 @@
+{
+    "home": {
+      "title": "Inicio",
+      "subtitle": "La biblioteca de música más genial del mundo.",
+      "shuffle_all": "Mezclar Todas las Canciones",
+      "recently_added": "Agregadas Recientemente",
+      "view_all": "Ver Todo"
+    },
+    "playlists": {
+      "title": "Listas de reproducción",
+      "subtitle": "Las playlists más épicas, creadas por ti.",
+      "create_button": "Crear Playlist",
+      "cover_alt": "Portada de Playlist",
+      "cover_preview": "Vista previa de portada",
+      "dialog": {
+        "create_title": "Crear Playlist",
+        "create_description": "Agrega una nueva playlist a tu biblioteca."
+      },
+      "form": {
+        "name_placeholder": "Nombre",
+        "description_placeholder": "Descripción",
+        "submit_button": "Crear Playlist"
+      },
+      "errors": {
+        "create_failed": "No se pudo crear la playlist. Intenta nuevamente.",
+        "name_too_short": "El nombre de la playlist debe tener al menos 2 caracteres."
+      }
+    },
+    "songs": {
+      "title": "Canciones",
+      "subtitle": "Todas tus canciones en un solo lugar, listas para filtrar y ordenar.",
+      "play_all": "Reproducir Todas",
+      "shuffle": "Mezclar",
+      "search_placeholder": "Buscar por canción, artista o álbum...",
+      "sort_by": "Ordenar por",
+      "sort_title": "Título de la Canción",
+      "sort_artist": "Artista",
+      "sort_album": "Álbum",
+      "sort_duration": "Duración",
+      "unknown_album": "Álbum Desconocido",
+      "unknown_artist": "Artista Desconocido",
+      "no_results": "No hay canciones que coincidan con tu búsqueda",
+      "no_songs": "No se encontraron canciones en tu biblioteca"
+    },
+    "albums": {
+      "title": "Álbumes",
+      "subtitle": "Todos tus álbumes en un solo lugar.",
+      "search_placeholder": "Buscar por título de álbum o artista...",
+      "sort_by": "Ordenar por",
+      "sort_title": "Título del Álbum",
+      "sort_artist": "Nombre del Artista",
+      "sort_year": "Año de Lanzamiento",
+      "sort_duration": "Duración del Álbum",
+      "no_results": "No hay álbumes que coincidan con tu búsqueda",
+      "no_albums": "No se encontraron álbumes en tu biblioteca"
+    },
+    "settings": {
+      "title": "Configuraciones",
+      "subtitle": "Aquí te las arreglas solo.",
+      "default_name": "Usuario Wora",
+      "default_description": "Un gran amante de la música.",
+      "form": {
+        "username_placeholder": "Un nombre de usuario sería genial.",
+        "picture_placeholder": "Imagen",
+        "save_button": "Guardar",
+        "update_music_folder": "Actualizar Carpeta de Música"
+      },
+      "stats": {
+        "songs": "Canciones",
+        "albums": "Álbumes",
+        "playlists": "Playlists"
+      },
+      "success": {
+        "updated": "Tus configuraciones fueron actualizadas.",
+        "rescanned": "Tu biblioteca fue reescaneada.",
+        "music_folder_updated": "Tu carpeta de música fue actualizada."
+      },
+      "errors": {
+        "upload_failed": "No se pudo subir la imagen de perfil. Se mantiene la existente.",
+        "username_too_short": "El nombre de usuario debe tener al menos 2 caracteres."
+      },
+      "lastfm": {
+        "title": "Integración con Last.fm",
+        "description": "Scrobblea tus canciones escuchadas a Last.fm",
+        "connected_as": "Conectado como: {{username}}",
+        "view_profile": "Ver perfil ({{count}} scrobbles)",
+        "logout": "Cerrar sesión",
+        "scrobble_threshold": "Umbral de scrobble: {{value}}%",
+        "scrobble_description": "La canción se scrobbleará después de reproducir este porcentaje de su duración",
+        "save_settings": "Guardar configuración de Last.fm",
+        "connect_title": "Conectar a Last.fm",
+        "connect_subtitle": "Conecta tu cuenta de Last.fm para scrobblear canciones",
+        "username": "Usuario Last.fm",
+        "username_placeholder": "Nombre de usuario",
+        "password": "Contraseña de Last.fm",
+        "password_placeholder": "Contraseña",
+        "connect_button": "Conectar a Last.fm",
+        "connecting": "Conectando",
+        "success": {
+          "connected": "¡Conectado exitosamente a Last.fm!",
+          "disconnected": "Desconectado exitosamente de Last.fm",
+          "settings_updated": "Configuración de Last.fm actualizada correctamente."
+        },
+        "errors": {
+          "connect_failed": "No se pudo conectar a Last.fm. Verifica tus credenciales.",
+          "connect_error": "Ocurrió un error al conectar con Last.fm.",
+          "disconnect_failed": "No se pudo desconectar de Last.fm",
+          "update_failed": "No se pudo actualizar la configuración de Last.fm.",
+          "lastfm_username_required": "Se requiere el nombre de usuario.",
+          "lastfm_password_required": "Se requiere la contraseña."
+        }
+      }
+    },
+    "setup": {
+      "subtitle": "Un reproductor hermoso para audiófilos 🎧",
+      "select_folder": "Seleccionar Carpeta de Música",
+      "errors": {
+        "music_folder_failed": "No se pudo configurar la carpeta de música. Intenta de nuevo."
+      }
+    },
+    "playlist": {
+      "actions": {
+        "play": "Reproducir",
+        "shuffle": "Mezclar",
+        "edit": "Editar"
+      },
+      "songs": {
+        "remove": "Quitar de la Playlist",
+        "removed": "Canción quitada de la playlist"
+      },
+      "edit": {
+        "title": "Actualizar Playlist",
+        "subtitle": "Actualiza tu playlist",
+        "name_placeholder": "Nombre",
+        "description_placeholder": "Descripción",
+        "delete": "Eliminar Playlist",
+        "update": "Actualizar Playlist"
+      },
+      "delete": {
+        "title": "Confirmar Eliminación",
+        "subtitle": "¿Seguro que quieres eliminar esta playlist? Esta acción no se puede deshacer.",
+        "cancel": "Cancelar",
+        "confirm": "Eliminar"
+      },
+      "success": {
+        "updated": "Playlist actualizada correctamente",
+        "deleted": "Playlist eliminada correctamente."
+      },
+      "errors": {
+        "load_failed": "No se pudo cargar la playlist",
+        "update_failed": "No se pudo actualizar la playlist",
+        "delete_failed": "No se pudo eliminar la playlist: {{error}}"
+      }
+    },
+    "artist": {
+      "cover_alt": "Portada de Artista",
+      "actions": {
+        "play": "Reproducir",
+        "shuffle": "Mezclar"
+      },
+      "info": {
+        "albums": "Álbumes",
+        "songs": "Canciones",
+        "unknown_year": "Desconocido"
+      },
+      "tabs": {
+        "albums": "Álbumes",
+        "songs": "Canciones"
+      }
+    },
+    "album": {
+      "cover_alt": "Portada de Álbum",
+      "unknown_year": "Desconocido",
+      "actions": {
+        "play": "Reproducir",
+        "shuffle": "Mezclar"
+      }
+    },
+    "navbar": {
+      "links": {
+        "home": "Inicio",
+        "playlists": "Playlists",
+        "songs": "Canciones",
+        "albums": "Álbumes"
+      },
+      "search": {
+        "open": "Buscar",
+        "placeholder": "Busca una canción, álbum o playlist...",
+        "results": "Resultados de búsqueda",
+        "types": {
+          "artist": "Artista",
+          "playlist": "Playlist",
+          "album": "Álbum",
+          "song": "Canción"
+        }
+      },
+      "theme": "Tema",
+      "language": "Idioma",
+      "language_search": "Buscar idioma...",
+      "available_languages": "Idiomas disponibles",
+      "selected": "Seleccionado",
+      "defaultUser": "Usuario Wora"
+    },
+    "player": {
+      "queue": "Cola",
+      "history": "Historial",
+      "queue_empty": "La cola está vacía",
+      "no_history": "Sin historial de reproducción",
+      "song_added_to_playlist": "Canción agregada a la playlist",
+      "song_already_in_playlist": "La canción ya existe en la playlist",
+      "failed_to_add_to_playlist": "No se pudo agregar la canción a la playlist",
+      "failed_to_load_audio": "No se pudo cargar el audio",
+      "go_to_album": "Ir al Álbum",
+      "add_to_playlist": "Agregar a Playlist",
+      "default_song_name": "Ecos del Vacío",
+      "default_artist_name": "El Conjunto del Vacío",
+      "lastfm_scrobbled": "Scrobbleado en Last.fm",
+      "lastfm_now_playing": "Reproduciendo en Last.fm",
+      "lastfm_will_scrobble_at": "Se scrobbleará al {{threshold}}%",
+      "add_to_favorites": "Agregar a Favoritos",
+      "remove_from_favorites": "Quitar de Favoritos",
+      "track_information": "Información de la Canción",
+      "track_information_description": "Detalles de tu canción actualmente reproduciéndose",
+      "artist": "Artista",
+      "album": "Álbum",
+      "codec": "Códec",
+      "sample": "Muestra",
+      "duration": "Duración",
+      "genre": "Género",
+      "unknown": "Desconocido",
+      "lossless_format": "Sin pérdida [{{bitsPerSample}}/{{sampleRate}}kHz]",
+      "lossy_audio": "Audio con pérdida",
+      "error": "Error",
+      "scrobbled": "Scrobbleado",
+      "now_playing_will_scrobble": "Reproduciendo (se scrobbleará al {{threshold}}%)",
+      "waiting_to_scrobble": "Esperando scrobblear al {{threshold}}%"
+    }
+  }
+  

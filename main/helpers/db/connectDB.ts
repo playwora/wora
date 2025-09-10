@@ -154,14 +154,31 @@ export const getLibraryStats = async () => {
 };
 
 export const getSettings = async () => {
-  const settings = await db.select().from(schema.settings).limit(1);
-  return settings[0];
+  const defaults = {
+    name: null,
+    profilePicture: null,
+    musicFolder: null,
+    lastFmUsername: null,
+    lastFmSessionKey: null,
+    enableLastFm: false,
+    scrobbleThreshold: 50,
+    language: "en",
+  };
+
+  const settingsRow = await db.select().from(settings).limit(1);
+  if (settingsRow.length === 0) return defaults;
+
+  return {
+    ...defaults,
+    ...settingsRow[0],
+    language: settingsRow[0].language || "en",
+  };
 };
 
 export const updateSettings = async (data: any) => {
   const currentSettings = await db.select().from(settings);
 
-  if (currentSettings[0].profilePicture) {
+  if (currentSettings[0]?.profilePicture && data.profilePicture && data.profilePicture !== currentSettings[0].profilePicture) {
     try {
       fs.unlinkSync(currentSettings[0].profilePicture);
     } catch (error) {
@@ -169,13 +186,17 @@ export const updateSettings = async (data: any) => {
     }
   }
 
-  await db.update(settings).set({
-    name: data.name,
-    profilePicture: data.profilePicture,
-  });
+  // Construir objeto de actualización, solo con los campos que vienen en data
+  const updateObj: any = {};
+  if (data.name !== undefined) updateObj.name = data.name;
+  if (data.profilePicture !== undefined) updateObj.profilePicture = data.profilePicture;
+  if (data.language !== undefined) updateObj.language = data.language;
+
+  await db.update(settings).set(updateObj);
 
   return true;
 };
+
 
 export const getSongs = async (page: number = 1, limit: number = 30) => {
   return await db.query.songs.findMany({

@@ -34,20 +34,21 @@ import {
   getUserInfo,
   initializeLastFMWithSession,
 } from "@/lib/lastfm";
+import { useTranslation } from "react-i18next";
 
 const formSchema = z.object({
   name: z.string().min(2, {
-    message: "Username must be at least 2 characters long.",
+    message: "settings.errors.username_too_short",
   }),
   profilePicture: z.any().optional(),
 });
 
 const lastFmFormSchema = z.object({
   lastFmUsername: z.string().min(1, {
-    message: "Username is required.",
+    message: "settings.errors.lastfm_username_required",
   }),
   lastFmPassword: z.string().min(1, {
-    message: "Password is required.",
+    message: "settings.errors.lastfm_password_required",
   }),
 });
 
@@ -74,6 +75,7 @@ type LastFmSettings = {
 };
 
 export default function Settings() {
+  const { t } = useTranslation();
   const [settings, setSettings] = useState<Settings | null>(null);
   const [loading, setLoading] = useState(false);
   const [lastFmLoading, setLastFmLoading] = useState(false);
@@ -164,7 +166,7 @@ export default function Settings() {
         toast(
           <div className="flex w-fit items-center gap-2 text-xs">
             <IconX className="text-red-500" stroke={2} size={16} />
-            Failed to upload profile picture. Using existing picture.
+            {t("settings.errors.upload_failed")}
           </div>,
         );
         // Fallback to the original profile picture
@@ -184,7 +186,7 @@ export default function Settings() {
       if (response) {
         setLoading(false);
         setSettings((prevSettings) => ({ ...prevSettings, ...updatedData }));
-        toast.success("Your settings are updated.");
+        toast.success(t("settings.success.updated"));
       }
     });
   };
@@ -232,7 +234,7 @@ export default function Settings() {
           toast(
             <div className="flex w-fit items-center gap-2 text-xs">
               <IconCheck className="text-green-400" stroke={2} size={16} />
-              Successfully connected to Last.fm!
+              {t("settings.lastfm.success.connected")}
             </div>,
           );
         }
@@ -240,7 +242,7 @@ export default function Settings() {
         toast(
           <div className="flex w-fit items-center gap-2 text-xs">
             <IconX className="text-red-500" stroke={2} size={16} />
-            Failed to connect to Last.fm. Check your credentials.
+            {t("settings.lastfm.errors.connect_failed")}
           </div>,
         );
       }
@@ -249,7 +251,7 @@ export default function Settings() {
       toast(
         <div className="flex w-fit items-center gap-2 text-xs">
           <IconX className="text-red-500" stroke={2} size={16} />
-          An error occurred while connecting to Last.fm.
+          {t("settings.lastfm.errors.connect_error")}
         </div>,
       );
     } finally {
@@ -285,7 +287,7 @@ export default function Settings() {
       toast(
         <div className="flex w-fit items-center gap-2 text-xs">
           <IconCheck className="text-green-400" stroke={2} size={16} />
-          Successfully disconnected from Last.fm
+          {t("settings.lastfm.success.disconnected")}
         </div>,
       );
     } catch (error) {
@@ -293,7 +295,7 @@ export default function Settings() {
       toast(
         <div className="flex w-fit items-center gap-2 text-xs">
           <IconX className="text-red-500" stroke={2} size={16} />
-          Failed to disconnect from Last.fm
+          {t("settings.lastfm.errors.disconnect_failed")}
         </div>,
       );
     } finally {
@@ -321,7 +323,7 @@ export default function Settings() {
       toast(
         <div className="flex w-fit items-center gap-2 text-xs">
           <IconCheck className="text-green-400" stroke={2} size={16} />
-          Last.fm settings updated successfully.
+          {t("settings.lastfm.success.settings_updated")}
         </div>,
       );
     } catch (error) {
@@ -329,7 +331,7 @@ export default function Settings() {
       toast(
         <div className="flex w-fit items-center gap-2 text-xs">
           <IconX className="text-red-500" stroke={2} size={16} />
-          Failed to update Last.fm settings.
+          {t("settings.lastfm.errors.update_failed")}
         </div>,
       );
     }
@@ -373,7 +375,7 @@ export default function Settings() {
         toast(
           <div className="flex w-fit items-center gap-2 text-xs">
             <IconCheck className="text-green-400" stroke={2} size={16} />
-            Your library is rescanned.
+            {t("settings.success.rescanned")}
           </div>,
         );
         window.ipc.invoke("getLibraryStats").then((response) => {
@@ -393,7 +395,7 @@ export default function Settings() {
         toast(
           <div className="flex w-fit items-center gap-2 text-xs">
             <IconCheck className="text-green-400" stroke={2} size={16} />
-            Your music folder is updated.
+            {t("settings.success.music_folder_updated")}
           </div>,
         );
         window.ipc.invoke("getSettings").then((response) => {
@@ -424,8 +426,10 @@ export default function Settings() {
     <div className="flex flex-col gap-8">
       <div className="flex flex-col gap-8">
         <div className="flex flex-col">
-          <div className="mt-4 text-lg leading-6 font-medium">Settings</div>
-          <div className="opacity-50">You&apos;re on your own here.</div>
+          <div className="mt-4 text-lg leading-6 font-medium">
+            {t("settings.title")}
+          </div>
+          <div className="opacity-50">{t("settings.subtitle")}</div>
         </div>
         <div className="relative flex w-full flex-col gap-8">
           <div className="flex w-full items-center gap-8">
@@ -454,7 +458,7 @@ export default function Settings() {
                             <FormControl>
                               <Input
                                 id="profilePicture"
-                                placeholder="Picture"
+                                placeholder={t("settings.form.picture_placeholder")}
                                 type="file"
                                 accept="image/*"
                                 onChange={(e) => {
@@ -479,9 +483,11 @@ export default function Settings() {
                       <p className="text-sm font-medium">
                         {settings && settings.name
                           ? settings.name
-                          : "Wora User"}
+                          : t("settings.default_name")}
                       </p>
-                      <p className="opacity-50">A great listener of music.</p>
+                      <p className="opacity-50">
+                        {t("settings.default_description")}
+                      </p>
                     </div>
                   </div>
                   <div className="flex w-full items-center gap-2">
@@ -492,7 +498,7 @@ export default function Settings() {
                         <FormItem className="w-full">
                           <FormControl>
                             <Input
-                              placeholder="A username would be great."
+                              placeholder={t("settings.form.username_placeholder")}
                               {...field}
                             />
                           </FormControl>
@@ -504,7 +510,7 @@ export default function Settings() {
                       className="w-fit justify-between text-xs"
                       type="submit"
                     >
-                      Save
+                      {t("settings.form.save_button")}
                       {loading ? (
                         <Spinner className="h-3.5 w-3.5" />
                       ) : (
@@ -520,19 +526,19 @@ export default function Settings() {
                 <div className="flex w-full items-center gap-4">
                   <div className="mt-4 flex w-full justify-around">
                     <div className="flex flex-col items-center gap-2">
-                      Songs
+                      {t("settings.stats.songs")}
                       <p className="text-xl font-medium">
                         {stats && stats.songs}
                       </p>
                     </div>
                     <div className="flex flex-col items-center gap-2">
-                      Albums
+                      {t("settings.stats.albums")}
                       <p className="text-xl font-medium">
                         {stats && stats.albums}
                       </p>
                     </div>
                     <div className="flex flex-col items-center gap-2">
-                      Playlists
+                      {t("settings.stats.playlists")}
                       <p className="text-xl font-medium">
                         {stats && stats.playlists}
                       </p>
@@ -555,7 +561,7 @@ export default function Settings() {
                     className="w-fit justify-between text-xs text-nowrap"
                     onClick={scanLibrary}
                   >
-                    Update Music Folder
+                    {t("settings.form.update_music_folder")}
                     {musicLoading ? (
                       <Spinner className="h-3.5 w-3.5" />
                     ) : (
@@ -571,7 +577,9 @@ export default function Settings() {
           <div className="flex w-full flex-col gap-4">
             <div className="flex items-center gap-2">
               <IconBrandLastfm stroke={2} size={20} className="text-red-500" />
-              <h2 className="text-lg font-medium">Last.fm Integration</h2>
+              <h2 className="text-lg font-medium">
+                {t("settings.lastfm.title")}
+              </h2>
             </div>
 
             {lastFmSettings.lastFmSessionKey ? (
@@ -589,7 +597,7 @@ export default function Settings() {
                         <div className="flex flex-col">
                           <div className="flex items-center gap-2">
                             <p className="text-sm font-medium">
-                              Connected as: {lastFmSettings.lastFmUsername}
+                              {t("settings.lastfm.connected_as", { username: lastFmSettings.lastFmUsername })}
                             </p>
                             {lastFmUserInfo &&
                               lastFmUserInfo.image &&
@@ -602,7 +610,7 @@ export default function Settings() {
                               )}
                           </div>
                           <p className="text-xs opacity-50">
-                            Scrobble your played tracks to Last.fm
+                            {t("settings.lastfm.description")}
                           </p>
                           {lastFmUserInfo && (
                             <a
@@ -611,8 +619,7 @@ export default function Settings() {
                               rel="noopener noreferrer"
                               className="mt-1 text-xs text-red-500 hover:underline"
                             >
-                              View profile ({lastFmUserInfo.playcount || 0}{" "}
-                              scrobbles)
+                              {t("settings.lastfm.view_profile", { count: lastFmUserInfo.playcount || 0 })}
                             </a>
                           )}
                         </div>
@@ -629,7 +636,7 @@ export default function Settings() {
                             ) : (
                               <>
                                 <IconLogout stroke={2} size={14} />
-                                Logout
+                                {t("settings.lastfm.logout")}
                               </>
                             )}
                           </Button>
@@ -657,7 +664,7 @@ export default function Settings() {
                           <FormItem className="space-y-1">
                             <div className="flex justify-between">
                               <FormLabel className="text-xs">
-                                Scrobble Threshold: {field.value}%
+                                {t("settings.lastfm.scrobble_threshold", { value: field.value })}
                               </FormLabel>
                             </div>
                             <FormControl>
@@ -672,8 +679,7 @@ export default function Settings() {
                               />
                             </FormControl>
                             <FormDescription className="text-xs opacity-50">
-                              Track will scrobble after playing this percentage
-                              of its length
+                              {t("settings.lastfm.scrobble_description")}
                             </FormDescription>
                           </FormItem>
                         )}
@@ -682,7 +688,7 @@ export default function Settings() {
 
                     <div className="flex justify-end">
                       <Button type="submit" className="w-fit text-xs">
-                        Save Last.fm Settings
+                        {t("settings.lastfm.save_settings")}
                       </Button>
                     </div>
                   </form>
@@ -697,9 +703,11 @@ export default function Settings() {
                     className="flex flex-col gap-4"
                   >
                     <div className="flex flex-col gap-1">
-                      <p className="text-sm font-medium">Connect to Last.fm</p>
+                      <p className="text-sm font-medium">
+                        {t("settings.lastfm.connect_title")}
+                      </p>
                       <p className="mb-2 text-xs opacity-50">
-                        Connect your Last.fm account to scrobble tracks
+                        {t("settings.lastfm.connect_subtitle")}
                       </p>
                     </div>
 
@@ -710,10 +718,10 @@ export default function Settings() {
                         render={({ field }) => (
                           <FormItem className="flex flex-col">
                             <FormLabel className="text-xs">
-                              Last.fm Username
+                              {t("settings.lastfm.username")}
                             </FormLabel>
                             <FormControl>
-                              <Input placeholder="Username" {...field} />
+                              <Input placeholder={t("settings.lastfm.username_placeholder")} {...field} />
                             </FormControl>
                             <FormMessage className="text-xs" />
                           </FormItem>
@@ -726,12 +734,12 @@ export default function Settings() {
                         render={({ field }) => (
                           <FormItem className="flex flex-col">
                             <FormLabel className="text-xs">
-                              Last.fm Password
+                              {t("settings.lastfm.password")}
                             </FormLabel>
                             <FormControl>
                               <Input
                                 type="password"
-                                placeholder="Password"
+                                placeholder={t("settings.lastfm.password_placeholder")}
                                 {...field}
                               />
                             </FormControl>
@@ -749,10 +757,11 @@ export default function Settings() {
                       >
                         {lastFmLoading ? (
                           <>
-                            Connecting <Spinner className="ml-2 h-3.5 w-3.5" />
+                            {t("settings.lastfm.connecting")}
+                            <Spinner className="ml-2 h-3.5 w-3.5" />
                           </>
                         ) : (
-                          <>Connect to Last.fm</>
+                          <>{t("settings.lastfm.connect_button")}</>
                         )}
                       </Button>
                     </div>

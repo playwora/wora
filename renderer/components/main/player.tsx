@@ -68,6 +68,8 @@ import {
   isAuthenticated,
 } from "@/lib/lastfm";
 import AutoSizer from "react-virtualized-auto-sizer";
+import { useTranslation } from "react-i18next";
+
 
 // Toast notification component for consistent messaging
 const NotificationToast = ({ success, message }) => (
@@ -89,11 +91,12 @@ function getAlbumCoverUrl(song: Song | undefined): string {
   return `wora://${cover}`;
 }
 
-const QueuePanel = memo(({ queue, history, currentIndex, onSongSelect }: {
+const QueuePanel = memo(({ queue, history, currentIndex, onSongSelect, t }: {
   queue: Song[];
   history: Song[];
   currentIndex: number;
   onSongSelect: (song: Song) => void;
+  t: (key: string, options?: any) => string;
 }) => {
   const ITEM_HEIGHT = 80; // Height of each song item including gap
 
@@ -140,10 +143,10 @@ const QueuePanel = memo(({ queue, history, currentIndex, onSongSelect }: {
         >
           <TabsList className="w-full pointer-events-auto">
             <TabsTrigger value="queue" className="w-full gap-2 cursor-pointer pointer-events-auto">
-              <IconListTree stroke={2} size={15} /> Queue
+              <IconListTree stroke={2} size={15} /> {t("player.queue")}
             </TabsTrigger>
             <TabsTrigger value="history" className="w-full gap-2 cursor-pointer pointer-events-auto">
-              <IconClock stroke={2} size={15} /> History
+              <IconClock stroke={2} size={15} /> {t("player.history")}
             </TabsTrigger>
           </TabsList>
 
@@ -168,7 +171,7 @@ const QueuePanel = memo(({ queue, history, currentIndex, onSongSelect }: {
               </AutoSizer>
             ) : (
               <div className="flex h-40 items-center justify-center text-sm opacity-50 pointer-events-none">
-                Queue is empty
+                {t("player.queue_empty")}
               </div>
             )}
           </TabsContent>
@@ -195,7 +198,7 @@ const QueuePanel = memo(({ queue, history, currentIndex, onSongSelect }: {
               </AutoSizer>
             ) : (
               <div className="flex h-40 items-center justify-center text-sm opacity-50 pointer-events-none">
-                No playback history
+                {t("player.no_history")}
               </div>
             )}
           </TabsContent>
@@ -206,6 +209,8 @@ const QueuePanel = memo(({ queue, history, currentIndex, onSongSelect }: {
 });
 
 export const Player = () => {
+  const { t } = useTranslation();
+  
   // Player state
   const [seekPosition, setSeekPosition] = useState(0);
   const [volume, setVolume] = useState(0.5);
@@ -574,8 +579,8 @@ export const Player = () => {
               success={response === true}
               message={
                 response === true
-                  ? "Song added to playlist"
-                  : "Song already exists in playlist"
+                  ? t("player.song_added_to_playlist")
+                  : t("player.song_already_in_playlist")
               }
             />,
           );
@@ -584,7 +589,7 @@ export const Player = () => {
           toast(
             <NotificationToast
               success={false}
-              message="Failed to add song to playlist"
+              message={t("player.failed_to_add_to_playlist")}
             />,
           );
         });
@@ -741,7 +746,7 @@ export const Player = () => {
         console.error("Error loading audio:", error);
         setIsPlaying(false);
         toast(
-          <NotificationToast success={false} message="Failed to load audio" />,
+          <NotificationToast success={false} message={t("player.failed_to_load_audio")} />,
         );
       },
       onend: () => {
@@ -947,7 +952,7 @@ export const Player = () => {
       </div>
 
       <div className="!absolute top-0 right-0 w-96">
-        {showQueue && <QueuePanel queue={queue} history={history} currentIndex={currentIndex} onSongSelect={handleSongSelect} />}
+        {showQueue && <QueuePanel queue={queue} history={history} currentIndex={currentIndex} onSongSelect={handleSongSelect} t={t} />}
       </div>
 
       <div className="wora-border h-28 w-full overflow-hidden rounded-2xl p-6">
@@ -976,13 +981,13 @@ export const Player = () => {
                     <Link href={`/albums/${song.album?.id}`}>
                       <ContextMenuItem className="flex items-center gap-2">
                         <IconVinyl stroke={2} size={14} />
-                        Go to Album
+                        {t("player.go_to_album")}
                       </ContextMenuItem>
                     </Link>
                     <ContextMenuSub>
                       <ContextMenuSubTrigger className="flex items-center gap-2">
                         <IconPlus stroke={2} size={14} />
-                        Add to Playlist
+                        {t("player.add_to_playlist")}
                       </ContextMenuSubTrigger>
                       <ContextMenuSubContent className="w-52">
                         {playlists.map((playlist) => (
@@ -1013,7 +1018,7 @@ export const Player = () => {
 
               <div className="w-full">
                 <p className="truncate text-sm font-medium">
-                  {song ? song.name : "Echoes of Emptiness"}
+                  {song ? song.name : t("player.default_song_name")}
                 </p>
                 <Link
                   href={
@@ -1021,7 +1026,7 @@ export const Player = () => {
                   }
                 >
                   <p className="cursor-pointer truncate opacity-50 hover:underline hover:opacity-80">
-                    {song ? song.artist : "The Void Ensemble"}
+                    {song ? song.artist : t("player.default_artist_name")}
                   </p>
                 </Link>
               </div>
@@ -1130,18 +1135,16 @@ export const Player = () => {
                               Error: {lastFmStatus.error}
                             </p>
                           ) : lastFmStatus.isScrobbled ? (
-                            <p>Scrobbled to Last.fm</p>
+                            <p>{t("player.lastfm_scrobbled")}</p>
                           ) : lastFmStatus.isNowPlaying ? (
                             <p>
-                              Now playing on Last.fm
+                              {t("player.lastfm_now_playing")}
                               <br />
-                              Will scrobble at{" "}
-                              {lastFmSettings.scrobbleThreshold}%
+                              {t("player.lastfm_will_scrobble_at", { threshold: lastFmSettings.scrobbleThreshold })}
                             </p>
                           ) : (
                             <p>
-                              Will scrobble at{" "}
-                              {lastFmSettings.scrobbleThreshold}%
+                              {t("player.lastfm_will_scrobble_at", { threshold: lastFmSettings.scrobbleThreshold })}
                             </p>
                           )}
                         </TooltipContent>
@@ -1167,8 +1170,8 @@ export const Player = () => {
                     <TooltipContent side="right" sideOffset={25}>
                       <p>
                         {!isFavourite
-                          ? "Add to Favorites"
-                          : "Remove from Favorites"}
+                          ? t("player.add_to_favorites")
+                          : t("player.remove_from_favorites")}
                       </p>
                     </TooltipContent>
                   </Tooltip>
@@ -1248,9 +1251,9 @@ export const Player = () => {
                   {song && (
                     <DialogContent>
                       <DialogHeader>
-                        <DialogTitle>Track Information</DialogTitle>
+                        <DialogTitle>{t("player.track_information")}</DialogTitle>
                         <DialogDescription>
-                          Details for your currently playing song
+                          {t("player.track_information_description")}
                         </DialogDescription>
                       </DialogHeader>
 
@@ -1276,35 +1279,38 @@ export const Player = () => {
                           </p>
 
                           <p className="truncate">
-                            <span className="opacity-50">Artist:</span>{" "}
-                            {metadata?.common?.artist || "Unknown"}
+                            <span className="opacity-50">{t("player.artist")}:</span>{" "}
+                            {metadata?.common?.artist || t("player.unknown")}
                           </p>
 
                           <p className="truncate">
-                            <span className="opacity-50">Album:</span>{" "}
-                            {metadata?.common?.album || "Unknown"}
+                            <span className="opacity-50">{t("player.album")}:</span>{" "}
+                            {metadata?.common?.album || t("player.unknown")}
                           </p>
 
                           <p className="truncate">
-                            <span className="opacity-50">Codec:</span>{" "}
-                            {metadata?.format?.codec || "Unknown"}
+                            <span className="opacity-50">{t("player.codec")}:</span>{" "}
+                            {metadata?.format?.codec || t("player.unknown")}
                           </p>
 
                           <p className="truncate">
-                            <span className="opacity-50">Sample:</span>{" "}
+                            <span className="opacity-50">{t("player.sample")}:</span>{" "}
                             {metadata?.format?.lossless
-                              ? `Lossless [${metadata.format.bitsPerSample}/${(metadata.format.sampleRate / 1000).toFixed(1)}kHz]`
-                              : "Lossy Audio"}
+                              ? t("player.lossless_format", { 
+                                  bitsPerSample: metadata.format.bitsPerSample,
+                                  sampleRate: (metadata.format.sampleRate / 1000).toFixed(1)
+                                })
+                              : t("player.lossy_audio")}
                           </p>
 
                           <p className="truncate">
-                            <span className="opacity-50">Duration:</span>{" "}
+                            <span className="opacity-50">{t("player.duration")}:</span>{" "}
                             {convertTime(soundRef.current?.duration() || 0)}
                           </p>
 
                           <p className="truncate">
-                            <span className="opacity-50">Genre:</span>{" "}
-                            {metadata?.common?.genre?.[0] || "Unknown"}
+                            <span className="opacity-50">{t("player.genre")}:</span>{" "}
+                            {metadata?.common?.genre?.[0] || t("player.unknown")}
                           </p>
 
                           {lastFmSettings.enableLastFm &&
@@ -1313,20 +1319,14 @@ export const Player = () => {
                                 <span className="opacity-50">Last.fm:</span>{" "}
                                 {lastFmStatus.error ? (
                                   <span className="text-red-500">
-                                    Error: {lastFmStatus.error}
+                                    {t("player.error")}: {lastFmStatus.error}
                                   </span>
                                 ) : lastFmStatus.isScrobbled ? (
-                                  "Scrobbled"
+                                  t("player.scrobbled")
                                 ) : lastFmStatus.isNowPlaying ? (
-                                  <>
-                                    Now playing (will scrobble at{" "}
-                                    {lastFmSettings.scrobbleThreshold}%)
-                                  </>
+                                  t("player.now_playing_will_scrobble", { threshold: lastFmSettings.scrobbleThreshold })
                                 ) : (
-                                  <>
-                                    Waiting to scrobble at{" "}
-                                    {lastFmSettings.scrobbleThreshold}%
-                                  </>
+                                  t("player.waiting_to_scrobble", { threshold: lastFmSettings.scrobbleThreshold })
                                 )}
                               </p>
                             )}
