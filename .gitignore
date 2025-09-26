@@ -12,3 +12,4 @@ dist
 .env.development
 .env.production
 .vercel
+.idea/

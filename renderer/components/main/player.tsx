@@ -1,6 +1,7 @@
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import {
+  IconAdjustmentsHorizontal,
   IconArrowsShuffle2,
   IconBrandLastfm,
   IconCheck,
@@ -17,13 +18,14 @@ import {
   IconPlus,
   IconRepeat,
   IconRipple,
+  IconTransitionRight,
   IconVinyl,
   IconVolume,
   IconVolumeOff,
   IconX,
 } from "@tabler/icons-react";
 import React, { memo, useCallback, useEffect, useRef, useState } from "react";
-import { Howl } from "howler";
+import { AudiophileCrossfadeAdapter, CrossfadeTrack } from "@/lib/AudiophileCrossfadeAdapter";
 import { FixedSizeList as List } from "react-window";
 import { Slider } from "@/components/ui/slider";
 import {
@@ -233,9 +235,20 @@ export const Player = () => {
   const scrobbleTimeout = useRef<NodeJS.Timeout | null>(null);
 
   // References
-  const soundRef = useRef<Howl | null>(null);
+  const crossfadeControllerRef = useRef<AudiophileCrossfadeAdapter | null>(null);
+  const nextTrackQueuedRef = useRef<boolean>(false);
+  const crossfadeActiveRef = useRef<boolean>(false);
+  const preloadedTrackIdRef = useRef<number | null>(null);
   const seekUpdateInterval = useRef<NodeJS.Timeout | null>(null);
   const volumeSliderRef = useRef<HTMLDivElement | null>(null);
+  const volumeRef = useRef(volume);
+  const isMutedRef = useRef(isMuted);
+  const [audioEnhancement, setAudioEnhancement] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('audioEnhancement') === 'true';
+    }
+    return false;
+  });
 
   // Get player context and song metadata
   const {
@@ -249,12 +262,23 @@ export const Player = () => {
     shuffle,
     toggleShuffle,
     toggleRepeat,
+    crossfade,
+    crossfadeDuration,
+    toggleCrossfade,
+    setCrossfadeDuration,
     jumpToSong,
     isPlaying,
     setIsPlaying,
   } = usePlayer();
 
   const { metadata, lyrics, favourite } = useAudioMetadata(song?.filePath);
+
+  // Save audio enhancement preference
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('audioEnhancement', audioEnhancement.toString());
+    }
+  }, [audioEnhancement]);
 
   // Load Last.fm settings
   useEffect(() => {
@@ -335,10 +359,10 @@ export const Player = () => {
     }
 
     const scrobbleIfThresholdReached = () => {
-      if (!soundRef.current || lastFmStatus.isScrobbled) return;
+      if (!crossfadeControllerRef.current || lastFmStatus.isScrobbled) return;
 
-      const duration = soundRef.current.duration();
-      const currentPosition = soundRef.current.seek();
+      const duration = crossfadeControllerRef.current.getCurrentDuration();
+      const currentPosition = crossfadeControllerRef.current.getCurrentTime();
       const playedPercentage = (currentPosition / duration) * 100;
 
       // Only log in development
@@ -416,19 +440,21 @@ export const Player = () => {
 
   // Player control functions - Define handlePlayPause earlier to avoid reference error
   const handlePlayPause = useCallback(() => {
-    if (!soundRef.current) return;
+    if (!crossfadeControllerRef.current) return;
 
-    if (soundRef.current.playing()) {
-      soundRef.current.pause();
+    if (crossfadeControllerRef.current.isPlaying()) {
+      crossfadeControllerRef.current.pause();
+      setIsPlaying(false);
     } else {
-      soundRef.current.play();
+      crossfadeControllerRef.current.play();
+      setIsPlaying(true);
     }
-  }, []);
+  }, [setIsPlaying]);
 
   const handleSeek = useCallback((value: number[]) => {
-    if (!soundRef.current) return;
+    if (!crossfadeControllerRef.current) return;
 
-    soundRef.current.seek(value[0]);
+    crossfadeControllerRef.current.seek(value[0]);
     setSeekPosition(value[0]);
   }, []);
 
@@ -453,8 +479,8 @@ export const Player = () => {
       setIsMuted(true);
 
       // Directly apply mute to audio
-      if (soundRef.current) {
-        soundRef.current.mute(true);
+      if (crossfadeControllerRef.current) {
+        crossfadeControllerRef.current.setMuted(true);
       }
     } else {
       // Restore previous volume or default to 50%
@@ -464,9 +490,9 @@ export const Player = () => {
       setIsMuted(false);
 
       // Directly apply volume and unmute to audio to avoid desync
-      if (soundRef.current) {
-        soundRef.current.volume(restoreVolume);
-        soundRef.current.mute(false);
+      if (crossfadeControllerRef.current) {
+        crossfadeControllerRef.current.setVolume(restoreVolume);
+        crossfadeControllerRef.current.setMuted(false);
       }
     }
   }, [isMuted, volume, previousVolume]);
@@ -475,7 +501,6 @@ export const Player = () => {
     event.preventDefault();
     const delta = event.deltaY > 0 ? -0.05 : 0.05; // Scroll down decreases, scroll up increases
     const newVolume = Math.max(0, Math.min(1, Math.round((volume + delta) * 100) / 100));
-    console.log(`Volume changed: ${newVolume}`);
     handleVolume([newVolume]);
   }, [volume, handleVolume]);
 
@@ -485,6 +510,80 @@ export const Player = () => {
     window.ipc.send("addToFavourites", id);
     setIsFavourite((prev) => !prev);
   }, []);
+
+  const handleNextSongWithCrossfade = useCallback(async () => {
+    if (!crossfadeControllerRef.current || !crossfade || currentIndex >= queue.length - 1) {
+      nextSong();
+      return;
+    }
+
+    const nextTrack = queue[currentIndex + 1];
+    if (!nextTrack?.filePath) {
+      nextSong();
+      return;
+    }
+
+    
+    try {
+      const crossfadeTrack: CrossfadeTrack = {
+        id: nextTrack.id,
+        filePath: nextTrack.filePath,
+        duration: nextTrack.duration
+      };
+      
+      crossfadeActiveRef.current = true;
+      const crossfadePromise = crossfadeControllerRef.current.scheduleCrossfade(crossfadeTrack);
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Crossfade timeout')), 15000)
+      );
+      
+      await Promise.race([crossfadePromise, timeoutPromise]);
+      
+    } catch (error) {
+      console.error('Crossfade failed, falling back to normal transition:', error);
+      crossfadeActiveRef.current = false;
+      nextSong(); // Fallback to normal transition
+    }
+  }, [crossfade, currentIndex, queue, song, nextSong]);
+
+  // Initialize CrossfadeController once on mount
+  useEffect(() => {
+    if (!crossfadeControllerRef.current) {
+      crossfadeControllerRef.current = new AudiophileCrossfadeAdapter();
+    }
+
+    return () => {
+      if (crossfadeControllerRef.current) {
+        crossfadeControllerRef.current.destroy();
+        crossfadeControllerRef.current = null;
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!crossfade) {
+      // Reset any pending crossfade operations when crossfade is turned off
+      if (nextTrackQueuedRef.current || crossfadeActiveRef.current) {
+        nextTrackQueuedRef.current = false;
+        crossfadeActiveRef.current = false;
+        
+        // Abort any in-progress crossfade in the controller
+        if (crossfadeControllerRef.current) {
+          crossfadeControllerRef.current.abortCrossfade();
+        }
+      }
+    } else {
+      if (!crossfadeActiveRef.current) {
+        nextTrackQueuedRef.current = false;
+        
+        // Make sure the controller is ready for crossfade operations
+        if (crossfadeControllerRef.current && song) {
+          // The current song should already be loaded, just ensure we're ready
+        }
+      } else {
+      }
+    }
+  }, [crossfade, song]);
 
   const handleKeyDown = useCallback((event: KeyboardEvent) => {
     // Only handle keyboard shortcuts if we're not focused on an input element
@@ -550,9 +649,9 @@ export const Player = () => {
   }, [handlePlayPause, song, toggleFavourite, toggleShuffle, toggleRepeat, toggleMute, previousSong, nextSong]);
 
   const handleLyricClick = useCallback((time: number) => {
-    if (!soundRef.current) return;
+    if (!crossfadeControllerRef.current) return;
 
-    soundRef.current.seek(time);
+    crossfadeControllerRef.current.seek(time);
     setSeekPosition(time);
   }, []);
 
@@ -708,14 +807,18 @@ export const Player = () => {
 
   // Initialize or update audio when song changes
   useEffect(() => {
-    // Clean up previous audio and intervals
-    if (soundRef.current) {
-      soundRef.current.unload();
+    
+    if (crossfadeActiveRef.current) {
+      setIsPlaying(true);
+      if (song) {
+        updateDiscordState(1, song);
+        window.ipc.send("update-window", [true, song?.artist, song?.name]);
+      }
+      return;
     }
 
-    if (seekUpdateInterval.current) {
-      clearInterval(seekUpdateInterval.current);
-    }
+    crossfadeActiveRef.current = false;
+    preloadedTrackIdRef.current = null;
 
     // Reset seek position immediately when song changes
     setSeekPosition(0);
@@ -723,61 +826,152 @@ export const Player = () => {
     // No song to play, exit early
     if (!song?.filePath) return;
 
-    // Create new Howl instance
-    const sound = new Howl({
-      src: [`wora://${encodeURIComponent(song.filePath)}`],
-      format: [song.filePath.split(".").pop()],
-      html5: true,
-      autoplay: true,
-      preload: true,
-      volume: isMuted ? 0 : volume,
-      onload: () => {
+    if (!crossfadeControllerRef.current) {
+      crossfadeControllerRef.current = new AudiophileCrossfadeAdapter();
+    }
+
+    const controller = crossfadeControllerRef.current;
+    
+    // Apply audio enhancement setting
+    controller.setAudioEnhancement(audioEnhancement);
+    
+    const crossfadeTrack: CrossfadeTrack = {
+      id: song.id,
+      filePath: song.filePath,
+      duration: song.duration
+    };
+
+    const crossfadeOptions = {
+      crossfadeDuration,
+      volume: isMutedRef.current ? 0 : volumeRef.current,
+      onTrackEnd: () => {
+        setIsPlaying(false);
+        window.ipc.send("update-window", [false, null, null]);
+        
+        // Always advance to next song if not repeating, regardless of crossfade state
+        if (!repeat) {
+          nextSong();
+        }
+        
+        // Always reset the queued flag
+        nextTrackQueuedRef.current = false;
+        crossfadeActiveRef.current = false;
+      },
+      onTimeUpdate: (currentTime: number, duration: number) => {
+        setSeekPosition(currentTime);
+        
+        // Preload next track when 10 seconds from end (for gapless playback)
+        if (currentIndex < queue.length - 1) {
+          const timeRemaining = duration - currentTime;
+          const nextTrack = queue[currentIndex + 1];
+          
+          // Preload at 10 seconds before end (or halfway through if song is short)
+          const preloadTime = Math.min(10, duration / 2);
+          if (timeRemaining <= preloadTime && timeRemaining > preloadTime - 0.5 && 
+              nextTrack?.filePath && preloadedTrackIdRef.current !== nextTrack.id) {
+            const preloadTrack: CrossfadeTrack = {
+              id: nextTrack.id,
+              filePath: nextTrack.filePath,
+              duration: nextTrack.duration
+            };
+            preloadedTrackIdRef.current = nextTrack.id;
+            controller.preloadNextTrack(preloadTrack).catch((error) => {
+              console.error('Failed to preload next track:', error);
+              preloadedTrackIdRef.current = null;
+            });
+          }
+          
+          // Trigger crossfade or gapless transition when approaching end
+          if (!nextTrackQueuedRef.current && !crossfadeActiveRef.current) {
+            // Start crossfade when we reach the crossfade duration threshold
+            if (crossfade && timeRemaining <= crossfadeDuration && timeRemaining > 0.1) {
+              // Crossfade transition - trigger once when we hit the crossfade duration
+              nextTrackQueuedRef.current = true;
+              console.log(`Starting crossfade with ${timeRemaining.toFixed(1)}s remaining`);
+              handleNextSongWithCrossfade().catch((error) => {
+                console.error('Crossfade failed, falling back to normal transition:', error);
+                nextTrackQueuedRef.current = false;
+                nextSong();
+              });
+            } else if (!crossfade && timeRemaining <= 0.1 && timeRemaining > 0) {
+              // Gapless transition (no crossfade)
+              nextTrackQueuedRef.current = true;
+              const gaplessTrack: CrossfadeTrack = {
+                id: nextTrack.id,
+                filePath: nextTrack.filePath,
+                duration: nextTrack.duration
+              };
+              controller.scheduleGaplessTransition(gaplessTrack)
+                .then(() => {
+                  nextSong();
+                  nextTrackQueuedRef.current = false;
+                })
+                .catch((error) => {
+                  console.error('Gapless transition failed:', error);
+                  nextTrackQueuedRef.current = false;
+                  nextSong();
+                });
+            }
+          }
+        }
+      },
+      onCrossfadeStart: (nextTrack: CrossfadeTrack) => {
+        crossfadeActiveRef.current = true;
+      },
+      onCrossfadeComplete: () => {
+        const newTrackPosition = controller.getCurrentTime();
+        setSeekPosition(newTrackPosition);
+        nextSong();
+        
+        setTimeout(() => {
+          crossfadeActiveRef.current = false;
+        }, 1000);
+      },
+      onError: (error: Error) => {
+        console.error("CrossfadeController error:", error);
+        setIsPlaying(false);
+        toast(
+          <NotificationToast success={false} message="Failed to load audio" />
+        );
+      }
+    };
+
+    controller.loadTrack(crossfadeTrack, crossfadeOptions)
+      .then(() => {
         setSeekPosition(0);
         setIsPlaying(true);
         updateDiscordState(1, song);
         window.ipc.send("update-window", [true, song?.artist, song?.name]);
-      },
-      onloaderror: (error) => {
-        console.error("Error loading audio:", error);
+        nextTrackQueuedRef.current = false;
+        
+        // Start playback
+        controller.play();
+      })
+      .catch((error) => {
+        console.error("Error loading track:", error);
         setIsPlaying(false);
         toast(
-          <NotificationToast success={false} message="Failed to load audio" />,
+          <NotificationToast success={false} message="Failed to load audio" />
         );
-      },
-      onend: () => {
-        setIsPlaying(false);
-        window.ipc.send("update-window", [false, null, null]);
-        if (!repeat) {
-          nextSong();
-        }
-      },
-      onplay: () => {
-        setIsPlaying(true);
-        window.ipc.send("update-window", [true, song?.artist, song?.name]);
-      },
-      onpause: () => {
-        setIsPlaying(false);
-        window.ipc.send("update-window", [false, false, false]);
-      },
-    });
-
-    soundRef.current = sound;
-
-    // Set up seek position updater
-    seekUpdateInterval.current = setInterval(() => {
-      if (sound.playing()) {
-        setSeekPosition(sound.seek());
-      }
-    }, 100);
+      });
 
     // Clean up on unmount or when song changes
     return () => {
-      sound.unload();
       if (seekUpdateInterval.current) {
         clearInterval(seekUpdateInterval.current);
       }
     };
-  }, [song, nextSong]); // Removed volume and isMuted from dependencies
+  }, [song, crossfadeDuration, crossfade, currentIndex, queue, audioEnhancement]);
+
+  // Handle volume/mute changes without reloading the track
+  useEffect(() => {
+    volumeRef.current = volume;
+    isMutedRef.current = isMuted;
+    if (crossfadeControllerRef.current) {
+      crossfadeControllerRef.current.setVolume(volume);
+      crossfadeControllerRef.current.setMuted(isMuted);
+    }
+  }, [volume, isMuted]);
 
   // Handle lyrics updates
   useEffect(() => {
@@ -790,9 +984,9 @@ export const Player = () => {
     let lyricUpdateInterval: NodeJS.Timeout;
 
     const updateCurrentLyric = () => {
-      if (!soundRef.current?.playing()) return;
+      if (!crossfadeControllerRef.current?.isPlaying()) return;
 
-      const currentSeek = soundRef.current.seek();
+      const currentSeek = crossfadeControllerRef.current.getCurrentTime();
       const currentLyricLine = parsedLyrics.find((line, index) => {
         const nextLine = parsedLyrics[index + 1];
         return (
@@ -858,18 +1052,16 @@ export const Player = () => {
           );
           navigator.mediaSession.setActionHandler("nexttrack", nextSong);
           navigator.mediaSession.setActionHandler("seekbackward", () => {
-            if (soundRef.current) {
-              soundRef.current.seek(Math.max(0, soundRef.current.seek() - 10));
+            if (crossfadeControllerRef.current) {
+              const currentTime = crossfadeControllerRef.current.getCurrentTime();
+              crossfadeControllerRef.current.seek(Math.max(0, currentTime - 10));
             }
           });
           navigator.mediaSession.setActionHandler("seekforward", () => {
-            if (soundRef.current) {
-              soundRef.current.seek(
-                Math.min(
-                  soundRef.current.duration(),
-                  soundRef.current.seek() + 10,
-                ),
-              );
+            if (crossfadeControllerRef.current) {
+              const currentTime = crossfadeControllerRef.current.getCurrentTime();
+              const duration = crossfadeControllerRef.current.getCurrentDuration();
+              crossfadeControllerRef.current.seek(Math.min(duration, currentTime + 10));
             }
           });
         });
@@ -904,23 +1096,14 @@ export const Player = () => {
 
   // Apply volume and mute settings when they change
   useEffect(() => {
-    if (!soundRef.current) return;
+    if (!crossfadeControllerRef.current) return;
 
-    // When unmuting, set volume first, then unmute
-    if (!isMuted) {
-      soundRef.current.volume(volume);
-      soundRef.current.mute(false);
-    } else {
-      soundRef.current.mute(true);
-    }
+    crossfadeControllerRef.current.setVolume(volume);
+    crossfadeControllerRef.current.setMuted(isMuted);
   }, [volume, isMuted]);
 
-  // Apply repeat setting when it changes
-  useEffect(() => {
-    if (soundRef.current) {
-      soundRef.current.loop(repeat);
-    }
-  }, [repeat]);
+  // Repeat functionality is handled by the onTrackEnd callback
+
 
   // Server-side rendering placeholder
   if (!isClient) {
@@ -1112,6 +1295,116 @@ export const Player = () => {
                   )}
                 </Button>
 
+                <ContextMenu>
+                  <ContextMenuTrigger>
+                    <Tooltip delayDuration={0}>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          onClick={() => {
+                            toggleCrossfade();
+                          }}
+                          className="relative opacity-100!"
+                        >
+                          {!crossfade ? (
+                            <IconTransitionRight
+                              stroke={2}
+                              size={16}
+                              className="wora-transition opacity-30! hover:opacity-100!"
+                            />
+                          ) : (
+                            <div>
+                              <IconTransitionRight stroke={2} size={16} />
+                              <div className="absolute -top-2 right-0 left-0 mx-auto h-[1.5px] w-2/3 rounded-full bg-black dark:bg-white"></div>
+                            </div>
+                          )}
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="left" sideOffset={25}>
+                        <p>
+                          {!crossfade
+                            ? `Enable Crossfade (${crossfadeDuration}s)`
+                            : `Disable Crossfade (${crossfadeDuration}s)`}
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </ContextMenuTrigger>
+                  
+                  <ContextMenuContent className="w-48">
+                    <ContextMenuItem
+                      onClick={() => setCrossfadeDuration(3)}
+                      className="flex items-center justify-between"
+                    >
+                      <span>3 seconds</span>
+                      {crossfadeDuration === 3 && <IconCheck size={14} />}
+                    </ContextMenuItem>
+                    <ContextMenuItem
+                      onClick={() => setCrossfadeDuration(5)}
+                      className="flex items-center justify-between"
+                    >
+                      <span>5 seconds (default)</span>
+                      {crossfadeDuration === 5 && <IconCheck size={14} />}
+                    </ContextMenuItem>
+                    <ContextMenuItem
+                      onClick={() => setCrossfadeDuration(8)}
+                      className="flex items-center justify-between"
+                    >
+                      <span>8 seconds</span>
+                      {crossfadeDuration === 8 && <IconCheck size={14} />}
+                    </ContextMenuItem>
+                    <ContextMenuItem
+                      onClick={() => setCrossfadeDuration(10)}
+                      className="flex items-center justify-between"
+                    >
+                      <span>10 seconds</span>
+                      {crossfadeDuration === 10 && <IconCheck size={14} />}
+                    </ContextMenuItem>
+                    <ContextMenuItem
+                      onClick={() => setCrossfadeDuration(15)}
+                      className="flex items-center justify-between"
+                    >
+                      <span>15 seconds</span>
+                      {crossfadeDuration === 15 && <IconCheck size={14} />}
+                    </ContextMenuItem>
+                  </ContextMenuContent>
+                </ContextMenu>
+
+                <Tooltip delayDuration={0}>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      onClick={() => {
+                        setAudioEnhancement(!audioEnhancement);
+                      }}
+                      className="relative opacity-100!"
+                    >
+                      {!audioEnhancement ? (
+                        <IconAdjustmentsHorizontal
+                          stroke={2}
+                          size={16}
+                          className="wora-transition opacity-30! hover:opacity-100!"
+                        />
+                      ) : (
+                        <div>
+                          <IconAdjustmentsHorizontal stroke={2} size={16} />
+                          <div className="absolute -top-2 right-0 left-0 mx-auto h-[1.5px] w-2/3 rounded-full bg-black dark:bg-white"></div>
+                        </div>
+                      )}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="left" sideOffset={25}>
+                    <p className="font-semibold">Audio Enhancement</p>
+                    {audioEnhancement ? (
+                      <div className="text-xs mt-1">
+                        <p>✓ Volume normalization</p>
+                        <p>✓ Silence trimming</p>
+                      </div>
+                    ) : (
+                      <p className="text-xs mt-1">Click to enable</p>
+                    )}
+                  </TooltipContent>
+                </Tooltip>
+
                 {lastFmSettings.enableLastFm &&
                   lastFmSettings.lastFmSessionKey &&
                   lastFmStatus.lastFmActive && (
@@ -1180,11 +1473,11 @@ export const Player = () => {
                 <Slider
                   value={[seekPosition]}
                   onValueChange={handleSeek}
-                  max={soundRef.current?.duration() || 0}
+                  max={crossfadeControllerRef.current?.getCurrentDuration() || 0}
                   step={0.01}
                 />
                 <p className="absolute -right-8">
-                  {convertTime(soundRef.current?.duration() || 0)}
+                  {convertTime(crossfadeControllerRef.current?.getCurrentDuration() || 0)}
                 </p>
               </div>
             </div>
@@ -1299,7 +1592,7 @@ export const Player = () => {
 
                           <p className="truncate">
                             <span className="opacity-50">Duration:</span>{" "}
-                            {convertTime(soundRef.current?.duration() || 0)}
+                            {convertTime(crossfadeControllerRef.current?.getCurrentDuration() || 0)}
                           </p>
 
                           <p className="truncate">

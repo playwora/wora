@@ -36,6 +36,7 @@ import fs from "fs";
 import { Client } from "@xhayper/discord-rpc";
 import { eq, sql } from "drizzle-orm";
 import { initializeLastFmHandlers } from "./helpers/lastfm-service";
+import { initializeAudioAnalysis } from "./helpers/audio-analysis-service";
 import * as electronLog from "electron-log";
 
 // Configure application logging for production
@@ -122,6 +123,9 @@ const initializeLibrary = async () => {
 
   // Initialize Last.fm IPC handlers
   initializeLastFmHandlers();
+
+  // Initialize Audio Analysis Service
+  initializeAudioAnalysis();
 
   // @hiaaryan: Using Depreciated API [Seeking Not Supported with Net]
   protocol.registerFileProtocol("wora", (request, callback) => {

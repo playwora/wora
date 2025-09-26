@@ -32,6 +32,8 @@ interface PlayerState {
   repeat: boolean;
   shuffle: boolean;
   isPlaying: boolean;
+  crossfade: boolean;
+  crossfadeDuration: number;
 }
 
 interface PlayerContextType extends PlayerState {
@@ -45,6 +47,8 @@ interface PlayerContextType extends PlayerState {
   previousSong: () => void;
   toggleRepeat: () => void;
   toggleShuffle: () => void;
+  toggleCrossfade: () => void;
+  setCrossfadeDuration: (duration: number) => void;
   playNext: (song: Song) => void;
   addToQueue: (song: Song) => void;
   jumpToSong: (songIndex: number) => void;
@@ -60,6 +64,8 @@ const initialPlayerState: PlayerState = {
   repeat: false,
   shuffle: false,
   isPlaying: false,
+  crossfade: false,
+  crossfadeDuration: 5,
 };
 
 // Helper to safely access localStorage (only in browser)
@@ -94,11 +100,15 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
     // Initialize state with stored preferences - wrapped in a function for lazy initial state
     const savedRepeat = getStorageItem("repeat");
     const savedShuffle = getStorageItem("shuffle");
+    const savedCrossfade = getStorageItem("crossfade");
+    const savedCrossfadeDuration = getStorageItem("crossfadeDuration");
 
     return {
       ...initialPlayerState,
       repeat: savedRepeat ? JSON.parse(savedRepeat) : false,
       shuffle: savedShuffle ? JSON.parse(savedShuffle) : false,
+      crossfade: savedCrossfade ? JSON.parse(savedCrossfade) : false,
+      crossfadeDuration: savedCrossfadeDuration ? JSON.parse(savedCrossfadeDuration) : 5,
     };
   });
 
@@ -110,11 +120,13 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
     const savePreferences = () => {
       setStorageItem("repeat", JSON.stringify(playerState.repeat));
       setStorageItem("shuffle", JSON.stringify(playerState.shuffle));
+      setStorageItem("crossfade", JSON.stringify(playerState.crossfade));
+      setStorageItem("crossfadeDuration", JSON.stringify(playerState.crossfadeDuration));
     };
 
     const timeoutId = setTimeout(savePreferences, 300);
     return () => clearTimeout(timeoutId);
-  }, [playerState.repeat, playerState.shuffle]);
+  }, [playerState.repeat, playerState.shuffle, playerState.crossfade, playerState.crossfadeDuration]);
 
   // Clear song cache when component unmounts
   useEffect(() => {
@@ -155,14 +167,19 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
         shuffledQueue = shuffleArray([...processedSongs]);
       }
 
-      setPlayerState({
+      setPlayerState((prevState) => ({
         ...initialPlayerState,
+        // Preserve user preferences
+        repeat: prevState.repeat,
+        crossfade: prevState.crossfade,
+        crossfadeDuration: prevState.crossfadeDuration,
+        // Set new queue data
         queue: shuffledQueue,
         originalQueue: processedSongs,
         currentIndex: startIndex,
         song: shuffledQueue[startIndex],
         shuffle,
-      });
+      }));
     },
     [],
   );
@@ -378,6 +395,20 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
     });
   }, []);
 
+  const toggleCrossfade = useCallback(() => {
+    setPlayerState((prevState) => ({
+      ...prevState,
+      crossfade: !prevState.crossfade,
+    }));
+  }, []);
+
+  const setCrossfadeDuration = useCallback((duration: number) => {
+    setPlayerState((prevState) => ({
+      ...prevState,
+      crossfadeDuration: Math.max(1, Math.min(15, duration)),
+    }));
+  }, []);
+
   // Memoize context value to prevent unnecessary re-renders
   const contextValue = useMemo<PlayerContextType>(
     () => ({
@@ -401,6 +432,8 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
       previousSong,
       toggleRepeat,
       toggleShuffle,
+      toggleCrossfade,
+      setCrossfadeDuration,
       playNext,
       addToQueue,
       jumpToSong,
@@ -415,6 +448,8 @@ export const PlayerProvider = ({ children }: { children: ReactNode }) => {
       previousSong,
       toggleRepeat,
       toggleShuffle,
+      toggleCrossfade,
+      setCrossfadeDuration,
       playNext,
       addToQueue,
       jumpToSong,

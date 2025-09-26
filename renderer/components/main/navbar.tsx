@@ -93,6 +93,11 @@ const Navbar = () => {
   };
 
   const renderIcon = () => {
+    // Prevent hydration mismatch by showing default icon until mounted
+    if (!mounted) {
+      return <IconDeviceDesktop stroke={2} className="w-5" />;
+    }
+    
     if (theme === "light") {
       return <IconSun stroke={2} className="w-5" />;
     } else if (theme === "dark") {
