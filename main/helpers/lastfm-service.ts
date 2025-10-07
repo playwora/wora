@@ -5,21 +5,16 @@ import * as path from "path";
 import * as fs from "fs";
 import * as electronLog from "electron-log";
 
-// Configure a simplified log file for Last.fm related issues
 const lastFmLogger = electronLog.create({ logId: "lastfm" });
 lastFmLogger.transports.file.fileName = "lastfm.log";
-lastFmLogger.transports.file.level = "info"; // Change from debug to info to reduce verbosity
+lastFmLogger.transports.file.level = "info";
 
-// Simplified logging function with log levels
 const logLastFm = (
   message: string,
   data?: any,
   level: "info" | "error" | "warn" = "info",
 ) => {
-  // Only stringify data when actually needed
   const shouldLogToConsole = process.env.NODE_ENV !== "production";
-
-  // Log to file with appropriate level
   switch (level) {
     case "error":
       lastFmLogger.error(message, data);
@@ -30,16 +25,16 @@ const logLastFm = (
       if (shouldLogToConsole) console.warn(`[LastFm] ${message}`, data || "");
       break;
     default:
-      // Only log info messages to file in production, not to console
       lastFmLogger.info(message, data);
       if (shouldLogToConsole) console.log(`[LastFm] ${message}`, data || "");
   }
 };
 
-// Configuration for Last.fm API
 const API_URL = "https://ws.audioscrobbler.com/2.0/";
 
-// Load environment variables from .env.local for development mode
+const apiCache = new Map<string, { data: any; timestamp: number }>();
+const CACHE_TTL = 15 * 60 * 1000;
+
 const loadEnvVariables = () => {
   try {
     const envPath = path.join(process.cwd(), ".env.local");
@@ -48,7 +43,6 @@ const loadEnvVariables = () => {
     logLastFm(`Loading environment variables from ${envPath}`);
     const envContent = fs.readFileSync(envPath, "utf-8");
 
-    // Process environment variables
     envContent.split("\n").forEach((line) => {
       const match = line.match(/^\s*([\w.-]+)\s*=\s*(.*)?\s*$/);
       if (match) {
@@ -71,16 +65,13 @@ const loadEnvVariables = () => {
   }
 };
 
-// Load environment variables in development mode
 if (process.env.NODE_ENV !== "production") {
   loadEnvVariables();
 }
 
-// Get API keys from environment variables
 const DEV_API_KEY = process.env.LASTFM_API_KEY || "";
 const DEV_API_SECRET = process.env.LASTFM_API_SECRET || "";
 
-// Log API key status only in development
 if (process.env.NODE_ENV !== "production") {
   if (!DEV_API_KEY || !DEV_API_SECRET) {
     logLastFm(
@@ -91,8 +82,9 @@ if (process.env.NODE_ENV !== "production") {
   }
 }
 
-// Should we use embedded API keys or the backend?
-const useBackend = process.env.NODE_ENV === "production";
+const useBackend = process.env.NODE_ENV === "production" || 
+                   process.env.USE_BACKEND === "true" ||
+                   (!DEV_API_KEY || !DEV_API_SECRET);
 
 // Get the backend URL based on environment
 const getBackendUrl = (): string => {
@@ -491,6 +483,134 @@ export const initializeLastFmHandlers = () => {
     } catch (error) {
       logLastFm("Error in getTrackInfo", error, "error");
       return { success: false, error: "Internal error getting track info" };
+    }
+  });
+
+  // Handle get artist info
+  ipcMain.handle("lastfm:getArtistInfo", async (_, artist) => {
+    try {
+      if (!artist) {
+        return { success: false, error: "Artist name is required" };
+      }
+
+      // Use backend or direct API based on environment
+      if (useBackend) {
+        const query = `artist=${encodeURIComponent(artist)}`;
+        const response = await forwardToBackend(`artist-info?${query}`);
+        if (!response.success) {
+          logLastFm("Error getting artist info", response.error, "error");
+        }
+        return response;
+      } else {
+        const params: Record<string, string> = {
+          method: "artist.getInfo",
+          artist,
+          autocorrect: "1",
+        };
+
+        const response = await makeLastFmRequest(params, false);
+
+        if (response.error) {
+          return {
+            success: false,
+            error: response.message || "Failed to get artist info",
+          };
+        }
+
+        return {
+          success: true,
+          artist: response.artist,
+        };
+      }
+    } catch (error) {
+      logLastFm("Error in getArtistInfo", error, "error");
+      return { success: false, error: "Internal error getting artist info" };
+    }
+  });
+
+  // Handle get artist top tracks
+  ipcMain.handle("lastfm:getArtistTopTracks", async (_, artist) => {
+    try {
+      if (!artist) {
+        return { success: false, error: "Artist name is required" };
+      }
+
+      // Use backend or direct API based on environment
+      if (useBackend) {
+        const query = `artist=${encodeURIComponent(artist)}`;
+        const response = await forwardToBackend(`artist-top-tracks?${query}`);
+        if (!response.success) {
+          logLastFm("Error getting artist top tracks", response.error, "error");
+        }
+        return response;
+      } else {
+        const params: Record<string, string> = {
+          method: "artist.getTopTracks",
+          artist,
+          limit: "10",
+          autocorrect: "1",
+        };
+
+        const response = await makeLastFmRequest(params, false);
+
+        if (response.error) {
+          return {
+            success: false,
+            error: response.message || "Failed to get top tracks",
+          };
+        }
+
+        return {
+          success: true,
+          toptracks: response.toptracks,
+        };
+      }
+    } catch (error) {
+      logLastFm("Error in getArtistTopTracks", error, "error");
+      return { success: false, error: "Internal error getting top tracks" };
+    }
+  });
+
+  // Handle get similar artists
+  ipcMain.handle("lastfm:getSimilarArtists", async (_, artist) => {
+    try {
+      if (!artist) {
+        return { success: false, error: "Artist name is required" };
+      }
+
+      // Use backend or direct API based on environment
+      if (useBackend) {
+        const query = `artist=${encodeURIComponent(artist)}`;
+        const response = await forwardToBackend(`similar-artists?${query}`);
+        if (!response.success) {
+          logLastFm("Error getting similar artists", response.error, "error");
+        }
+        return response;
+      } else {
+        const params: Record<string, string> = {
+          method: "artist.getSimilar",
+          artist,
+          limit: "6",
+          autocorrect: "1",
+        };
+
+        const response = await makeLastFmRequest(params, false);
+
+        if (response.error) {
+          return {
+            success: false,
+            error: response.message || "Failed to get similar artists",
+          };
+        }
+
+        return {
+          success: true,
+          similarartists: response.similarartists,
+        };
+      }
+    } catch (error) {
+      logLastFm("Error in getSimilarArtists", error, "error");
+      return { success: false, error: "Internal error getting similar artists" };
     }
   });
 

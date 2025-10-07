@@ -10,6 +10,7 @@ import {
   db,
   getAlbumWithSongs,
   getAlbums,
+  getAllArtists,
   getArtistWithAlbums,
   getLastFmSettings,
   getLibraryStats,
@@ -454,6 +455,17 @@ ipcMain.handle("getActionsData", async () => {
 ipcMain.handle("getArtistWithAlbums", async (_, artist: string) => {
   const artistData = await getArtistWithAlbums(artist);
   return artistData;
+});
+
+// Handler to get all artists
+ipcMain.handle("getAllArtists", async () => {
+  try {
+    const allArtists = await getAllArtists();
+    return allArtists;
+  } catch (error) {
+    console.error("Error getting all artists:", error);
+    return [];
+  }
 });
 
 // New handler to get all songs for shuffle feature

@@ -8,6 +8,7 @@ import {
   IconSun,
   IconVinyl,
   IconUser,
+  IconArrowLeft,
 } from "@tabler/icons-react";
 import {
   Tooltip,
@@ -54,10 +55,31 @@ const Navbar = () => {
   const { setQueueAndPlay } = usePlayer();
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  const [canGoBack, setCanGoBack] = useState(false);
+  const [isBackButtonVisible, setIsBackButtonVisible] = useState(false);
 
   useEffect(() => {
     setMounted(true);
-  }, []);
+    const checkBackButton = () => {
+      const path = router.pathname;
+      const isDetailPage = path.includes('/artists/[') || path.includes('/albums/[') || path.includes('/playlists/[');
+      const shouldShow = isDetailPage && window.history.length > 1;
+      
+      if (shouldShow !== canGoBack) {
+        setCanGoBack(shouldShow);
+        if (shouldShow) {
+          setTimeout(() => setIsBackButtonVisible(true), 50);
+        } else {
+          setIsBackButtonVisible(false);
+        }
+      }
+    };
+    checkBackButton();
+    router.events.on('routeChangeComplete', checkBackButton);
+    return () => {
+      router.events.off('routeChangeComplete', checkBackButton);
+    };
+  }, [router, canGoBack]);
 
   const navLinks: NavLink[] = [
     {
@@ -80,6 +102,11 @@ const Navbar = () => {
       icon: <IconFocusCentered stroke={2} size={20} />,
       label: "Albums",
     },
+    {
+      href: "/artists",
+      icon: <IconUser stroke={2} size={20} />,
+      label: "Artists",
+    },
   ];
 
   const handleThemeToggle = () => {
@@ -93,6 +120,9 @@ const Navbar = () => {
   };
 
   const renderIcon = () => {
+    if (!mounted) {
+      return <IconDeviceDesktop stroke={2} className="w-5" />;
+    }
     if (theme === "light") {
       return <IconSun stroke={2} className="w-5" />;
     } else if (theme === "dark") {
@@ -118,21 +148,26 @@ const Navbar = () => {
       if (isActive(href)) {
         e.preventDefault();
 
-        window.scrollTo(0, 0);
-
-        if (router.pathname !== href) {
+        if (router.pathname === href) {
+          const viewport = document.querySelector('[data-radix-scroll-area-viewport]');
+          if (viewport) {
+            (viewport as HTMLElement).scrollTop = 0;
+          }
+          
+          if (href === "/albums") {
+            window.ipc.send("resetAlbumsPageState", null);
+          } else if (href === "/songs") {
+            window.ipc.send("resetSongsPageState", null);
+          } else if (href === "/playlists") {
+            window.ipc.send("resetPlaylistsPageState", null);
+          } else if (href === "/home") {
+            window.ipc.send("resetHomePageState", null);
+          } else if (href === "/artists") {
+            window.ipc.send("resetArtistsPageState", null);
+          }
+        } else {
+          // If navigating to a different page, just push the route
           router.push(href);
-          return;
-        }
-
-        if (href === "/albums") {
-          window.ipc.send("resetAlbumsPageState", null);
-        } else if (href === "/songs") {
-          window.ipc.send("resetSongsPageState", null);
-        } else if (href === "/playlists") {
-          window.ipc.send("resetPlaylistsPageState", null);
-        } else if (href === "/home") {
-          window.ipc.send("resetHomePageState", null);
         }
       }
     },
@@ -229,7 +264,32 @@ const Navbar = () => {
               <p>{settings && settings.name ? settings.name : "Wora User"}</p>
             </TooltipContent>
           </Tooltip>
-          <div className="wora-border flex w-18 flex-col items-center gap-10 rounded-2xl p-8">
+          <div className="wora-border flex w-18 flex-col items-center gap-10 rounded-2xl p-8 transition-all duration-300 ease-in-out">
+            <div
+              className={`transition-all duration-300 ease-in-out ${
+                canGoBack ? 'max-h-12 opacity-100' : 'max-h-0 opacity-0 -mt-10 overflow-hidden'
+              }`}
+            >
+              {(canGoBack || isBackButtonVisible) && (
+                <Tooltip delayDuration={0}>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      onClick={() => router.back()}
+                      className={`transition-all duration-300 ${
+                        isBackButtonVisible ? 'scale-100 opacity-100' : 'scale-95 opacity-0'
+                      }`}
+                    >
+                      <IconArrowLeft stroke={2} className="w-5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="right" sideOffset={50}>
+                    <p>Back</p>
+                  </TooltipContent>
+                </Tooltip>
+              )}
+            </div>
+            
             {navLinks.map((link) => (
               <Tooltip key={link.href} delayDuration={0}>
                 <TooltipTrigger asChild>
@@ -270,7 +330,7 @@ const Navbar = () => {
               </Button>
             </TooltipTrigger>
             <TooltipContent side="right" sideOffset={25}>
-              <p className="capitalize">Theme: {theme}</p>
+              <p className="capitalize">Theme: {mounted ? theme : 'system'}</p>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>

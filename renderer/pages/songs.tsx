@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
+import { useScrollAreaRestoration } from "@/hooks/useScrollAreaRestoration";
 import { Button } from "@/components/ui/button";
 import Songs from "@/components/ui/songs";
 import { usePlayer } from "@/context/playerContext";
@@ -19,9 +20,9 @@ import {
 } from "@tabler/icons-react";
 import { Input } from "@/components/ui/input";
 import songCache from "@/lib/songCache";
+import { useRouter } from "next/router";
 
 export default function AllSongs() {
-  // Initialize state from the global song cache
   const [songs, setSongs] = useState(songCache.getAllSongs());
   const [filteredSongs, setFilteredSongs] = useState(
     songCache.getFilteredSongs(),
@@ -30,6 +31,9 @@ export default function AllSongs() {
   const [searchLoading, setSearchLoading] = useState(false);
   const [page, setPage] = useState(songCache.getPage());
   const [hasMore, setHasMore] = useState(songCache.hasMore());
+  
+  // Use scroll restoration hook for ScrollArea
+  useScrollAreaRestoration('songs');
 
   // Get sort settings from cache
   const cachedSortSettings = songCache.getSortSettings();
@@ -41,12 +45,13 @@ export default function AllSongs() {
 
   const { setQueueAndPlay } = usePlayer();
   const searchTimeout = useRef<NodeJS.Timeout | null>(null);
+  const router = useRouter();
 
   // Add ref to Songs component
   const songsListRef = useRef<{ scrollToTop: () => void }>(null);
   const contentRef = useRef<HTMLDivElement>(null);
 
-  // Listen for page reset events
+  
   useEffect(() => {
     // Listen for reset event from main process
     const resetListener = window.ipc.on("resetSongsState", () => {

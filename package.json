@@ -46,6 +46,7 @@
     "electron-store": "^8.2.0",
     "embla-carousel-react": "^8.6.0",
     "eslint-config-next": "^15.3.4",
+    "framer-motion": "^12.23.12",
     "howler": "^2.2.4",
     "last-fm": "^5.3.0",
     "music-metadata": "^7.14.0",

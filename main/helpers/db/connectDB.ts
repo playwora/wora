@@ -1,4 +1,4 @@
-import { and, eq, like, sql, or, exists } from "drizzle-orm";
+import { and, eq, like, sql, or, exists, isNotNull } from "drizzle-orm";
 import { albums, songs, settings, playlistSongs, playlists } from "./schema";
 import fs from "fs";
 import { parseFile, selectCover } from "music-metadata";
@@ -35,10 +35,8 @@ const audioExtensions = [
 
 const imageExtensions = [".png", ".jpg", ".jpeg", ".gif", ".bmp", ".webp"];
 
-// Image cache to avoid redundant processing
 const processedImages = new Map();
 
-// Function to check if a file is an audio file
 function isAudioFile(filePath: string): boolean {
   return audioExtensions.includes(path.extname(filePath).toLowerCase());
 }
@@ -69,7 +67,6 @@ function findFirstImageInDirectory(dir: string): string | null {
   return null;
 }
 
-// More efficient file reader that uses batch processing
 function readFilesRecursively(dir: string, batch = 100): string[] {
   let results: string[] = [];
   let stack = [dir];
@@ -104,25 +101,21 @@ function readFilesRecursively(dir: string, batch = 100): string[] {
   return results;
 }
 
-// Full recursive scan, but optimized to handle large directories better
 function scanEntireLibrary(dir: string): string[] {
   let results: string[] = [];
 
   try {
     const items = fs.readdirSync(dir);
 
-    // Process directories in chunks to avoid memory issues with very large libraries
-    const chunkSize = 50; // Increased from 10 for better performance
+    const chunkSize = 50;
     for (let i = 0; i < items.length; i += chunkSize) {
       const chunk = items.slice(i, i + chunkSize);
 
-      // Process each item in the chunk
       for (const item of chunk) {
         const itemPath = path.join(dir, item);
         try {
           const stat = fs.statSync(itemPath);
           if (stat.isDirectory()) {
-            // Recursive scan but append results directly instead of creating many arrays
             results.push(...scanEntireLibrary(itemPath));
           } else if (isAudioFile(itemPath)) {
             results.push(itemPath);
@@ -993,6 +986,7 @@ export const getArtistWithAlbums = async (artist: string) => {
         albums: [],
         albumsWithSongs: [],
         songs: [],
+        stats: null,
       };
     }
 
@@ -1030,11 +1024,49 @@ export const getArtistWithAlbums = async (artist: string) => {
       }),
     );
 
+    // Calculate statistics
+    const totalDuration = artistSongs.reduce((sum, song) => sum + (song.duration || 0), 0);
+    const genres = new Set<string>();
+    const formats = new Set<string>();
+    
+    // Extract genres and formats from songs
+    artistSongs.forEach(song => {
+      if (song.filePath) {
+        const ext = song.filePath.split('.').pop()?.toUpperCase();
+        if (ext) formats.add(ext);
+      }
+    });
+
+    // Get year range
+    const years = artistAlbums.filter(a => a.year).map(a => a.year);
+    const yearRange = years.length > 0 
+      ? { start: Math.min(...years), end: Math.max(...years) }
+      : null;
+
+    // Get most played song (would need play count tracking, using random for now)
+    const topSongs = artistSongs.slice(0, 5).map(song => ({
+      id: song.id,
+      name: song.name,
+      duration: song.duration,
+      album: song.album?.name || "Unknown Album",
+    }));
+
+    const stats = {
+      totalSongs: artistSongs.length,
+      totalAlbums: artistAlbums.length,
+      totalDuration,
+      genres: Array.from(genres),
+      formats: Array.from(formats),
+      yearRange,
+      topSongs,
+    };
+
     return {
       name: artist,
       albums: artistAlbums,
       albumsWithSongs: albumsWithSongs,
       songs: artistSongs,
+      stats,
     };
   } catch (error) {
     console.error(`Error in getArtistWithAlbums for "${artist}":`, error);
@@ -1043,7 +1075,75 @@ export const getArtistWithAlbums = async (artist: string) => {
       albums: [],
       albumsWithSongs: [],
       songs: [],
+      stats: null,
     };
+  }
+};
+
+export const getAllArtists = async () => {
+  try {
+    const albumArtists = await db
+      .selectDistinct({ artist: albums.artist })
+      .from(albums)
+      .where(isNotNull(albums.artist));
+
+    const songArtists = await db
+      .selectDistinct({ artist: songs.artist })
+      .from(songs)
+      .where(isNotNull(songs.artist));
+
+    const artistNames = new Set<string>();
+    albumArtists.forEach(a => {
+      if (a.artist) artistNames.add(a.artist);
+    });
+    songArtists.forEach(s => {
+      if (s.artist) artistNames.add(s.artist);
+    });
+
+    const artistStats = await db
+      .select({
+        artist: albums.artist,
+        albumCount: sql<number>`COUNT(DISTINCT ${albums.id})`,
+        cover: sql<string>`MAX(${albums.cover})`
+      })
+      .from(albums)
+      .where(isNotNull(albums.artist))
+      .groupBy(albums.artist);
+
+    const songStats = await db
+      .select({
+        artist: songs.artist,
+        songCount: sql<number>`COUNT(*)`
+      })
+      .from(songs)
+      .where(isNotNull(songs.artist))
+      .groupBy(songs.artist);
+
+    const songCountMap = new Map<string, number>();
+    songStats.forEach(s => {
+      if (s.artist) {
+        songCountMap.set(s.artist, Number(s.songCount));
+      }
+    });
+
+    // Combine the data
+    const artistsWithDetails = Array.from(artistNames).map(artistName => {
+      const albumData = artistStats.find(a => a.artist === artistName);
+      return {
+        name: artistName,
+        albumCount: albumData ? Number(albumData.albumCount) : 0,
+        songCount: songCountMap.get(artistName) || 0,
+        cover: albumData?.cover || null,
+      };
+    });
+
+    // Sort by artist name
+    return artistsWithDetails.sort((a, b) => 
+      a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
+    );
+  } catch (error) {
+    console.error("Error getting all artists:", error);
+    return [];
   }
 };
 

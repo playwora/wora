@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
+import { useScrollAreaRestoration } from "@/hooks/useScrollAreaRestoration";
 import AlbumCard from "@/components/ui/album";
 import Spinner from "@/components/ui/spinner";
 import { useRouter } from "next/router";
@@ -20,12 +21,20 @@ import {
   IconLayoutList,
   IconGridDots,
 } from "@tabler/icons-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import Image from "next/image";
 import Link from "next/link";
 import albumCache from "@/lib/albumCache";
 
+type ViewMode = "grid-large" | "grid-small" | "list";
+
+
 export default function Albums() {
-  // Initialize state from the global album cache
   const [albums, setAlbums] = useState(albumCache.getAllAlbums());
   const [filteredAlbums, setFilteredAlbums] = useState(
     albumCache.getFilteredAlbums(),
@@ -35,63 +44,62 @@ export default function Albums() {
   const [searchLoading, setSearchLoading] = useState(false);
   const [page, setPage] = useState(albumCache.getPage());
   const [hasMore, setHasMore] = useState(albumCache.hasMore());
+  
+  // Use scroll restoration hook for ScrollArea
+  useScrollAreaRestoration('albums');
 
-  // Get sort settings from cache
-  const cachedSortSettings = albumCache.getSortSettings();
-  const [sortBy, setSortBy] = useState(cachedSortSettings.sortBy);
-  const [sortOrder, setSortOrder] = useState(cachedSortSettings.sortOrder);
+  const [sortBy, setSortBy] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("albumsSortBy") || albumCache.getSortSettings().sortBy;
+    }
+    return albumCache.getSortSettings().sortBy;
+  });
+  
+  const [sortOrder, setSortOrder] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("albumsSortOrder") || albumCache.getSortSettings().sortOrder;
+    }
+    return albumCache.getSortSettings().sortOrder;
+  });
 
-  // Initialize view mode from cache
-  const [viewMode, setViewMode] = useState(albumCache.getViewMode());
+  const [viewMode, setViewMode] = useState<ViewMode>(() => {
+    if (typeof window !== "undefined") {
+      return (localStorage.getItem("albumsViewMode") as ViewMode) || "grid-large";
+    }
+    return "grid-large";
+  });
 
   const router = useRouter();
   const searchTimeout = useRef<NodeJS.Timeout | null>(null);
   const gridRef = useRef(null);
+  
 
-  // Listen for page reset events
   useEffect(() => {
-    // Listen for reset event from main process
     const resetListener = window.ipc.on("resetAlbumsState", () => {
-      // Reset search term
       setSearchTerm("");
-
-      // Reset sort options to defaults
       setSortBy("name");
       setSortOrder("asc");
-
-      // Reset view mode to default if needed
-      setViewMode("grid");
-
-      // Reset album cache search state
+      setViewMode("grid-large");
       albumCache.setSearchResults([], "");
-
-      // We'll handle the reload in a separate effect that runs when these state values change
       setPage(1);
       setHasMore(true);
-
-      // Reset grid position if ref is available
       if (gridRef.current && gridRef.current.scrollToItem) {
         gridRef.current.scrollToItem(0);
       }
     });
 
     return () => {
-      // Clean up event listener
       resetListener();
     };
   }, []);
 
-  // Load albums on initial render
   useEffect(() => {
     if (!albumCache.isInitialized() || albumCache.isStale()) {
       loadAlbums();
       albumCache.setInitialized();
     } else {
-      // Use the cached data
       setAlbums(albumCache.getAllAlbums());
       setFilteredAlbums(albumCache.getFilteredAlbums());
-
-      // If we have a search query, use the cached search results
       if (searchTerm) {
         setFilteredAlbums(albumCache.getSearchResults());
       }
@@ -426,9 +434,9 @@ export default function Albums() {
     }
   }, [sortBy, sortOrder]);
 
-  // Update view mode in cache when it changes
   useEffect(() => {
-    albumCache.updateViewMode(viewMode);
+    const cacheViewMode = viewMode === "grid-large" ? "grid" : viewMode === "grid-small" ? "compact-grid" : "list";
+    albumCache.updateViewMode(cacheViewMode);
 
     // Reset the grid when view mode changes
     if (gridRef.current && gridRef.current.resetAfterIndex) {
@@ -478,6 +486,15 @@ export default function Albums() {
     return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
   };
 
+  // Save preferences to localStorage
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("albumsSortBy", sortBy);
+      localStorage.setItem("albumsSortOrder", sortOrder);
+      localStorage.setItem("albumsViewMode", viewMode);
+    }
+  }, [sortBy, sortOrder, viewMode]);
+
   // Toggle sort order
   const toggleSortOrder = () => {
     setSortOrder((prevOrder) => (prevOrder === "asc" ? "desc" : "asc"));
@@ -493,65 +510,122 @@ export default function Albums() {
   const isSearching = searchLoading && searchTerm;
 
   return (
-    <div className="flex flex-col gap-8">
-      <div className="flex flex-col gap-8">
-        {/* Header with title and description */}
-        <div className="flex flex-col">
-          <div className="mt-4 text-lg leading-6 font-medium">Albums</div>
-          <div className="opacity-50">All of your albums in one place.</div>
-        </div>
-
-        {/* Search and filter controls */}
-        <div className="flex w-full flex-wrap items-center justify-between gap-4">
-          <div className="relative w-full max-w-md">
-            <Input
-              placeholder="Search by album title or artist name..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pr-8 pl-8"
-            />
-            {searchTerm && (
-              <button
-                onClick={clearSearch}
-                className="absolute top-1/2 right-2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
-              >
-                <IconX size={16} stroke={2} />
-              </button>
-            )}
-            <div className="pointer-events-none absolute top-1/2 left-2 -translate-y-1/2 text-gray-400">
-              <IconSearch size={16} stroke={2} />
+    <TooltipProvider>
+      <div className="relative">
+        {/* Sticky Header */}
+        <div className="sticky top-0 z-20 bg-white/95 backdrop-blur-sm dark:bg-black/95 pb-4">
+          <div className="flex flex-col gap-8">
+            {/* Header with title and description */}
+            <div className="flex flex-col">
+              <div className="mt-4 text-lg leading-6 font-medium">Albums</div>
+              <div className="opacity-50">All of your albums in one place.</div>
             </div>
-          </div>
 
-          {/* Sort and View controls */}
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2">
-              <Select value={sortBy} onValueChange={setSortBy}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Sort by" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="name">Album Title</SelectItem>
-                  <SelectItem value="artist">Artist Name</SelectItem>
-                  <SelectItem value="year">Release Year</SelectItem>
-                  <SelectItem value="duration">Album Duration</SelectItem>
-                </SelectContent>
-              </Select>
-              <Button
-                variant="ghost"
-                onClick={toggleSortOrder}
-                className="px-2"
-              >
-                {sortOrder === "asc" ? (
-                  <IconSortAscending stroke={2} size={20} />
-                ) : (
-                  <IconSortDescending stroke={2} size={20} />
+            {/* Search and filter controls */}
+            <div className="flex w-full flex-wrap items-center justify-between gap-4">
+              <div className="relative w-full max-w-md">
+                <Input
+                  placeholder="Search by album title or artist name..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pr-8 pl-8"
+                />
+                {searchTerm && (
+                  <button
+                    onClick={clearSearch}
+                    className="absolute top-1/2 right-2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                  >
+                    <IconX size={16} stroke={2} />
+                  </button>
                 )}
-              </Button>
+                <div className="pointer-events-none absolute top-1/2 left-2 -translate-y-1/2 text-gray-400">
+                  <IconSearch size={16} stroke={2} />
+                </div>
+              </div>
+
+              {/* Sort and View controls */}
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <Select value={sortBy} onValueChange={setSortBy}>
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder="Sort by" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="name">Album Title</SelectItem>
+                      <SelectItem value="artist">Artist Name</SelectItem>
+                      <SelectItem value="year">Release Year</SelectItem>
+                      <SelectItem value="duration">Album Duration</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Tooltip delayDuration={0}>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        onClick={toggleSortOrder}
+                        className="px-2"
+                      >
+                        {sortOrder === "asc" ? (
+                          <IconSortAscending stroke={2} size={20} />
+                        ) : (
+                          <IconSortDescending stroke={2} size={20} />
+                        )}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>{sortOrder === "asc" ? "Ascending" : "Descending"}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+                
+                {/* View Mode */}
+                <div className="flex items-center gap-1 rounded-lg border p-1 dark:border-gray-800">
+                  <Tooltip delayDuration={0}>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={() => setViewMode("grid-large")}
+                        className={`rounded p-1 transition ${viewMode === "grid-large" ? "bg-black text-white dark:bg-white dark:text-black" : "hover:bg-gray-100 dark:hover:bg-gray-800"}`}
+                      >
+                        <IconLayoutGrid size={16} />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Large Grid</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip delayDuration={0}>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={() => setViewMode("grid-small")}
+                        className={`rounded p-1 transition ${viewMode === "grid-small" ? "bg-black text-white dark:bg-white dark:text-black" : "hover:bg-gray-100 dark:hover:bg-gray-800"}`}
+                      >
+                        <IconGridDots size={16} />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Small Grid</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip delayDuration={0}>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={() => setViewMode("list")}
+                        className={`rounded p-1 transition ${viewMode === "list" ? "bg-black text-white dark:bg-white dark:text-black" : "hover:bg-gray-100 dark:hover:bg-gray-800"}`}
+                      >
+                        <IconLayoutList size={16} />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>List View</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
+      {/* Content Area */}
+      <div className="mt-4">
         {/* Loading indicators */}
         {isLoadingInitial || isSearching ? (
           <div className="flex w-full items-center justify-center py-12">
@@ -560,17 +634,55 @@ export default function Albums() {
         ) : (
           <>
             {filteredAlbums.length > 0 ? (
-              <div
-                ref={gridRef}
-                className="grid h-full w-full grid-cols-5 gap-8"
-              >
-                {filteredAlbums.map((album) => (
-                  <AlbumCard
-                    key={album.id}
-                    album={{ ...album, id: album.id.toString() }}
-                  />
-                ))}
-              </div>
+              viewMode === "list" ? (
+                <div className="space-y-1">
+                  {filteredAlbums.map((album) => (
+                    <Link
+                      key={album.id}
+                      href={`/album/${album.id}`}
+                      className="group flex cursor-pointer items-center gap-4 rounded-lg p-3 transition hover:bg-gray-100 dark:hover:bg-gray-800"
+                    >
+                      <div className="relative h-12 w-12 flex-shrink-0 overflow-hidden rounded-lg bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900">
+                        {album.cover ? (
+                          <Image
+                            alt={album.name}
+                            src={`wora://${album.cover}`}
+                            fill
+                            loading="lazy"
+                            className="object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center">
+                            <IconLayoutGrid size={20} className="opacity-50" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="truncate font-medium">{album.name}</p>
+                        <p className="text-sm opacity-60">
+                          {album.artist} · {album.year || "Unknown year"}
+                        </p>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              ) : (
+                <div
+                  ref={gridRef}
+                  className={`grid h-full w-full gap-${viewMode === "grid-small" ? "4" : "8"} ${
+                    viewMode === "grid-small" 
+                      ? "grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10" 
+                      : "grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6"
+                  }`}
+                >
+                  {filteredAlbums.map((album) => (
+                    <AlbumCard
+                      key={album.id}
+                      album={{ ...album, id: album.id.toString() }}
+                    />
+                  ))}
+                </div>
+              )
             ) : (
               <div className="flex w-full items-center justify-center p-10 text-gray-500">
                 {searchTerm
@@ -588,5 +700,6 @@ export default function Albums() {
         )}
       </div>
     </div>
+    </TooltipProvider>
   );
 }

@@ -68,9 +68,9 @@ import {
   isAuthenticated,
 } from "@/lib/lastfm";
 import AutoSizer from "react-virtualized-auto-sizer";
+import ErrorBoundary from "@/components/ErrorBoundary";
 
-// Toast notification component for consistent messaging
-const NotificationToast = ({ success, message }) => (
+const NotificationToast = ({ success, message }: { success: boolean; message: string }) => (
   <div className="flex w-fit items-center gap-2 text-xs">
     {success ? (
       <IconCheck className="text-green-400" stroke={2} size={16} />
@@ -81,7 +81,6 @@ const NotificationToast = ({ success, message }) => (
   </div>
 );
 
-// Helper to get album cover URL
 function getAlbumCoverUrl(song: Song | undefined): string {
   const cover = song?.album?.cover;
   if (!cover) return "/coverArt.png";
@@ -95,7 +94,7 @@ const QueuePanel = memo(({ queue, history, currentIndex, onSongSelect }: {
   currentIndex: number;
   onSongSelect: (song: Song) => void;
 }) => {
-  const ITEM_HEIGHT = 80; // Height of each song item including gap
+  const ITEM_HEIGHT = 80;
 
   const VirtualizedSongListItem = ({ index, style, data }: {
     index: number;
@@ -152,20 +151,22 @@ const QueuePanel = memo(({ queue, history, currentIndex, onSongSelect }: {
             className="flex-1 min-h-0 pointer-events-auto"
           >
             {queueSongs.length > 0 ? (
-              <AutoSizer>
-                {({ height, width }) => (
-                  <List
-                    height={height}
-                    width={width}
-                    itemCount={queueSongs.length}
-                    itemSize={ITEM_HEIGHT}
-                    itemData={{ songs: queueSongs, onSongSelect }}
-                    className="no-scrollbar pointer-events-auto"
-                  >
-                    {VirtualizedSongListItem}
-                  </List>
-                )}
-              </AutoSizer>
+              <ErrorBoundary>
+                <AutoSizer>
+                  {({ height, width }) => (
+                    <List
+                      height={height}
+                      width={width}
+                      itemCount={queueSongs.length}
+                      itemSize={ITEM_HEIGHT}
+                      itemData={{ songs: queueSongs, onSongSelect }}
+                      className="no-scrollbar pointer-events-auto"
+                    >
+                      {VirtualizedSongListItem}
+                    </List>
+                  )}
+                </AutoSizer>
+              </ErrorBoundary>
             ) : (
               <div className="flex h-40 items-center justify-center text-sm opacity-50 pointer-events-none">
                 Queue is empty
@@ -178,21 +179,23 @@ const QueuePanel = memo(({ queue, history, currentIndex, onSongSelect }: {
             className="flex-1 min-h-0 pointer-events-auto"
           >
             {historySongs.length > 0 ? (
-              <AutoSizer>
-                {({ height, width }) => (
-                  <List
-                    height={height}
-                    width={width}
-                    itemCount={historySongs.length}
-                    overscanCount={5}
-                    itemSize={ITEM_HEIGHT}
-                    itemData={{ songs: historySongs, onSongSelect }}
-                    className="no-scrollbar pointer-events-auto"
-                  >
-                    {VirtualizedSongListItem}
-                  </List>
-                )}
-              </AutoSizer>
+              <ErrorBoundary>
+                <AutoSizer>
+                  {({ height, width }) => (
+                    <List
+                      height={height}
+                      width={width}
+                      itemCount={historySongs.length}
+                      overscanCount={5}
+                      itemSize={ITEM_HEIGHT}
+                      itemData={{ songs: historySongs, onSongSelect }}
+                      className="no-scrollbar pointer-events-auto"
+                    >
+                      {VirtualizedSongListItem}
+                    </List>
+                  )}
+                </AutoSizer>
+              </ErrorBoundary>
             ) : (
               <div className="flex h-40 items-center justify-center text-sm opacity-50 pointer-events-none">
                 No playback history
@@ -635,7 +638,6 @@ export const Player = () => {
     };
   }, [handleVolumeWheel]);
 
-  // Setup spacebar play/pause functionality
   useEffect(() => {
     document.addEventListener('keydown', handleKeyDown);
 

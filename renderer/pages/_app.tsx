@@ -8,6 +8,8 @@ import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/themeProvider";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useEffect, useRef } from "react";
+import ErrorBoundary from "@/components/ErrorBoundary";
+// import PageTransition from "@/components/PageTransition";  // Optional: Re-enable for transitions
 
 const SPECIAL_LAYOUTS = ["/setup"];
 
@@ -64,8 +66,10 @@ export default function App({ Component, pageProps }) {
                     ref={scrollAreaRef}
                     className="h-full w-full mask-b-from-40%"
                   >
-                    <Component key={router.pathname} {...pageProps} />
-                    <div className="h-[20vh] w-full" />
+                    <ErrorBoundary>
+                      <Component {...pageProps} />
+                      <div className="h-[20vh] w-full" />
+                    </ErrorBoundary>
                   </ScrollArea>
 
                   <Player />
