@@ -689,30 +689,18 @@ async function processAudioFile(file: string, albumCache: Map<string, any>) {
     const albumFolder = path.dirname(file);
     let artPath = null;
 
-    // Try to find album art in efficient order: cache first, then folder, then embedded
-    // Only process art if we need to show it (reduces I/O operations)
-    if (albumCache.has(`${albumFolder}-art`)) {
-      // Reuse already processed art path from cache
-      artPath = albumCache.get(`${albumFolder}-art`);
+    // Try to find album art in efficient order: embedded first, then folder
+    if (metadata.common.picture && metadata.common.picture.length > 0) {
+      const cover = selectCover(metadata.common.picture);
+      if (cover) {
+        artPath = await processEmbeddedArt(cover);
+      }
     } else {
-      // First check for external images as they're typically higher quality
+      // Fall back to external images if no embedded art is found
       const albumImage = findFirstImageInDirectory(albumFolder);
-
       if (albumImage) {
         artPath = await processAlbumArt(albumImage);
-      } else if (
-        metadata.common.picture &&
-        metadata.common.picture.length > 0
-      ) {
-        // Fall back to embedded art if available
-        const cover = selectCover(metadata.common.picture);
-        if (cover) {
-          artPath = await processEmbeddedArt(cover);
-        }
       }
-
-      // Cache the art path for this folder to avoid redundant processing
-      albumCache.set(`${albumFolder}-art`, artPath);
     }
 
     // Get or create album with better caching
@@ -1025,26 +1013,30 @@ export const getArtistWithAlbums = async (artist: string) => {
     );
 
     // Calculate statistics
-    const totalDuration = artistSongs.reduce((sum, song) => sum + (song.duration || 0), 0);
+    const totalDuration = artistSongs.reduce(
+      (sum, song) => sum + (song.duration || 0),
+      0,
+    );
     const genres = new Set<string>();
     const formats = new Set<string>();
-    
+
     // Extract genres and formats from songs
-    artistSongs.forEach(song => {
+    artistSongs.forEach((song) => {
       if (song.filePath) {
-        const ext = song.filePath.split('.').pop()?.toUpperCase();
+        const ext = song.filePath.split(".").pop()?.toUpperCase();
         if (ext) formats.add(ext);
       }
     });
 
     // Get year range
-    const years = artistAlbums.filter(a => a.year).map(a => a.year);
-    const yearRange = years.length > 0 
-      ? { start: Math.min(...years), end: Math.max(...years) }
-      : null;
+    const years = artistAlbums.filter((a) => a.year).map((a) => a.year);
+    const yearRange =
+      years.length > 0
+        ? { start: Math.min(...years), end: Math.max(...years) }
+        : null;
 
     // Get most played song (would need play count tracking, using random for now)
-    const topSongs = artistSongs.slice(0, 5).map(song => ({
+    const topSongs = artistSongs.slice(0, 5).map((song) => ({
       id: song.id,
       name: song.name,
       duration: song.duration,
@@ -1093,10 +1085,10 @@ export const getAllArtists = async () => {
       .where(isNotNull(songs.artist));
 
     const artistNames = new Set<string>();
-    albumArtists.forEach(a => {
+    albumArtists.forEach((a) => {
       if (a.artist) artistNames.add(a.artist);
     });
-    songArtists.forEach(s => {
+    songArtists.forEach((s) => {
       if (s.artist) artistNames.add(s.artist);
     });
 
@@ -1104,7 +1096,7 @@ export const getAllArtists = async () => {
       .select({
         artist: albums.artist,
         albumCount: sql<number>`COUNT(DISTINCT ${albums.id})`,
-        cover: sql<string>`MAX(${albums.cover})`
+        cover: sql<string>`MAX(${albums.cover})`,
       })
       .from(albums)
       .where(isNotNull(albums.artist))
@@ -1113,22 +1105,22 @@ export const getAllArtists = async () => {
     const songStats = await db
       .select({
         artist: songs.artist,
-        songCount: sql<number>`COUNT(*)`
+        songCount: sql<number>`COUNT(*)`,
       })
       .from(songs)
       .where(isNotNull(songs.artist))
       .groupBy(songs.artist);
 
     const songCountMap = new Map<string, number>();
-    songStats.forEach(s => {
+    songStats.forEach((s) => {
       if (s.artist) {
         songCountMap.set(s.artist, Number(s.songCount));
       }
     });
 
     // Combine the data
-    const artistsWithDetails = Array.from(artistNames).map(artistName => {
-      const albumData = artistStats.find(a => a.artist === artistName);
+    const artistsWithDetails = Array.from(artistNames).map((artistName) => {
+      const albumData = artistStats.find((a) => a.artist === artistName);
       return {
         name: artistName,
         albumCount: albumData ? Number(albumData.albumCount) : 0,
@@ -1138,8 +1130,8 @@ export const getAllArtists = async () => {
     });
 
     // Sort by artist name
-    return artistsWithDetails.sort((a, b) => 
-      a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
+    return artistsWithDetails.sort((a, b) =>
+      a.name.localeCompare(b.name, undefined, { sensitivity: "base" }),
     );
   } catch (error) {
     console.error("Error getting all artists:", error);
