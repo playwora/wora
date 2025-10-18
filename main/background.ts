@@ -201,7 +201,7 @@ ipcMain.on(
       startTimestamp: startTimestamp,
       endTimestamp: endTimestamp,
       buttons: [
-        { label: "Support Project", url: "https://github.com/hiaaryan/wora" },
+        { label: "Support Project", url: "https://github.com/playwora/wora" },
       ],
     };
 
@@ -258,7 +258,7 @@ app.whenReady().then(() => {
       label: "GitHub",
       type: "normal",
       click: () => {
-        shell.openExternal("https://github.com/hiaaryan/wora");
+        shell.openExternal("https://github.com/playwora/wora");
       },
     },
     {
