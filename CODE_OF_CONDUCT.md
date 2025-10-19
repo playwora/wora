@@ -1,15 +1,15 @@
 <p align="center">
-  <img src="https://github.com/hiaaryan/wora/blob/main/renderer/public/github/Header.png?raw=true" alt="Wora Logo" />
+  <img src="https://github.com/playwora/wora/blob/main/renderer/public/github/Header.png?raw=true" alt="Wora Logo" />
 </p>
 
 <p align="center">
-  <a href="https://github.com/hiaaryan/wora"><img alt="GitHub Actions Workflow Status" src="https://img.shields.io/github/actions/workflow/status/hiaaryan/wora/release.yml"></a>
-  <a href="https://github.com/hiaaryan/wora"><img src="https://img.shields.io/github/last-commit/hiaaryan/wora/main?commit" alt="Last Commit" /></a>
-  <a href="LICENSE"><img src="https://img.shields.io/github/license/hiaaryan/wora?license" alt="License" /></a>
+  <a href="https://github.com/playwora/wora"><img alt="GitHub Actions Workflow Status" src="https://img.shields.io/github/actions/workflow/status/playwora/wora/release.yml"></a>
+  <a href="https://github.com/playwora/wora"><img src="https://img.shields.io/github/last-commit/playwora/wora/main?commit" alt="Last Commit" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/playwora/wora?license" alt="License" /></a>
   <a href="https://discord.gg/CrAbAYMGCe"><img src="https://dcbadge.limes.pink/api/server/https://discord.gg/CrAbAYMGCe?style=flat" alt="Discord" /></a>
-  <a href="https://github.com/hiaaryan/wora/stargazers"><img src="https://img.shields.io/github/stars/hiaaryan/wora?style=flat&stars" alt="GitHub Stars" /></a>
-  <a href="https://github.com/hiaaryan/wora/network"><img src="https://img.shields.io/github/forks/hiaaryan/wora?style=flat&forks" alt="GitHub Forks" /></a>
-  <a href="https://github.com/hiaaryan/wora/watchers"><img src="https://img.shields.io/github/watchers/hiaaryan/wora?style=flat&watchers" alt="GitHub Watchers" /></a>
+  <a href="https://github.com/playwora/wora/stargazers"><img src="https://img.shields.io/github/stars/playwora/wora?style=flat&stars" alt="GitHub Stars" /></a>
+  <a href="https://github.com/playwora/wora/network"><img src="https://img.shields.io/github/forks/playwora/wora?style=flat&forks" alt="GitHub Forks" /></a>
+  <a href="https://github.com/playwora/wora/watchers"><img src="https://img.shields.io/github/watchers/playwora/wora?style=flat&watchers" alt="GitHub Watchers" /></a>
 </p>
 
 ## 🤝 Contributor Covenant Code of Conduct
