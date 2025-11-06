@@ -86,4 +86,11 @@ Join our [Discord server](https://discord.gg/CrAbAYMGCe) to connect with other u
 
 ---
 
+<br />
+<a href="https://vercel.com/oss">
+  <img alt="Vercel OSS Program" src="https://vercel.com/oss/program-badge.svg" />
+</a>
+<br />
+<br />
+
 MIT License. Made with ❤️ by [hiaaryan](https://github.com/hiaaryan) and contributors.
