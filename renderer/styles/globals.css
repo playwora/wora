@@ -85,6 +85,14 @@ layer(base);
   -webkit-app-region: no-drag;
 }
 
+.drag {
+  -webkit-app-region: drag;
+}
+
+.no-drag {
+  -webkit-app-region: no-drag;
+}
+
 html {
   overscroll-behavior: none;
 }
