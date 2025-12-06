@@ -68,7 +68,7 @@
     "@types/react": "^19.1.8",
     "autoprefixer": "^10.4.21",
     "drizzle-kit": "^0.31.2",
-    "electron": "^32.2.7",
+    "electron": "^38.2.1",
     "electron-builder": "^24.13.3",
     "next": "^15.3.4",
     "nextron": "^9.5.0",
