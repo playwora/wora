@@ -29,10 +29,7 @@
       "package": "com.wora.player",
       "permissions": [
         "android.permission.READ_EXTERNAL_STORAGE",
-        "android.permission.WRITE_EXTERNAL_STORAGE",
-        "android.permission.READ_MEDIA_AUDIO",
-        "android.permission.MANAGE_EXTERNAL_STORAGE"
-      ]
+        "android.permission.READ_MEDIA_AUDIO"
     },
     "web": {
       "favicon": "./assets/favicon.png"
