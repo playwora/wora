@@ -1,0 +1,114 @@
+name: Nightly Build
+
+on:
+  schedule:
+    - cron: '0 2 * * *'  # Run at 2 AM UTC every day
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Install Expo CLI
+        run: npm install -g expo-cli
+
+      - name: Cache Expo modules
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.npm
+            ~/.cache/expo
+          key: ${{ runner.os }}-expo-nightly-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-expo-nightly-
+
+      - name: Prebuild Android
+        run: npx expo prebuild --platform android --no-install
+        env:
+          EXPO_NO_DEV_TOOLS: 1
+
+      - name: Setup Java
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          android-version: 34
+          build-tools-version: 34.0.0
+
+      - name: Cache Gradle
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-nightly-${{ hashFiles('**/*.gradle*') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-nightly-
+
+      - name: Build Debug APK
+        run: |
+          cd android
+          ./gradlew assembleDebug --no-daemon --stacktrace
+        env:
+          ANDROID_NDK_HOME: ${{ env.ANDROID_HOME }}/ndk/25.2.9519653
+
+      - name: Get date for filename
+        id: date
+        run: echo "date=$(date +'%Y%m%d')" >> $GITHUB_OUTPUT
+
+      - name: Rename APK with date
+        run: |
+          cd android/app/build/outputs/apk/debug
+          mv app-debug.apk wora-mobile-nightly-${{ steps.date.outputs.date }}.apk
+
+      - name: Upload Nightly APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: wora-mobile-nightly-${{ steps.date.outputs.date }}
+          path: android/app/build/outputs/apk/debug/wora-mobile-nightly-${{ steps.date.outputs.date }}.apk
+          compression-level: 0
+          retention-days: 30
+
+      - name: Create Nightly Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: android/app/build/outputs/apk/debug/wora-mobile-nightly-${{ steps.date.outputs.date }}.apk
+          name: Wora Mobile Nightly Build (${{ steps.date.outputs.date }})
+          tag_name: nightly-${{ steps.date.outputs.date }}
+          body: |
+            ## Nightly Build - ${{ steps.date.outputs.date }}
+            
+            This is an automated nightly build of Wora Mobile.
+            
+            **Build Date**: ${{ github.event.repository.pushed_at }}
+            **Commit**: ${{ github.sha }}
+            
+            ### Download
+            [Download APK](https://github.com/${{ github.repository }}/releases/download/nightly-${{ steps.date.outputs.date }}/wora-mobile-nightly-${{ steps.date.outputs.date }}.apk)
+            
+            ### Notes
+            - This is a debug build for testing purposes
+            - May contain experimental features
+            - Not suitable for production use
+          draft: false
+          prerelease: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

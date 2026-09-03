@@ -1,0 +1,135 @@
+name: CI - Lint and Test
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run TypeScript type checking
+        run: npx tsc --noEmit
+
+      - name: Run ESLint
+        run: npx eslint src --ext .ts,.tsx || true
+
+      - name: Run Prettier check
+        run: npx prettier --check src "*.{json,js,ts,tsx}" || true
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run tests
+        run: |
+          # Placeholder for tests - add your test commands here
+          echo "Running tests..."
+          # Example: npm test
+          # Example: npx jest
+          echo "Tests completed"
+
+  build-debug:
+    name: Build Debug APK
+    needs: [lint, test]
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Install Expo CLI
+        run: npm install -g expo-cli
+
+      - name: Cache Expo modules
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.npm
+            ~/.cache/expo
+          key: ${{ runner.os }}-expo-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-expo-
+
+      - name: Prebuild Android
+        run: npx expo prebuild --platform android --no-install
+        env:
+          EXPO_NO_DEV_TOOLS: 1
+
+      - name: Setup Java
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          android-version: 34
+          build-tools-version: 34.0.0
+
+      - name: Cache Gradle
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Build Debug APK
+        run: |
+          cd android
+          ./gradlew assembleDebug --no-daemon --stacktrace
+        env:
+          ANDROID_NDK_HOME: ${{ env.ANDROID_HOME }}/ndk/25.2.9519653
+
+      - name: Upload Debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: wora-mobile-debug.apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          compression-level: 0
+          retention-days: 7

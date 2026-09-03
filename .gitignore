@@ -1,14 +1,72 @@
-node_modules
-*.log
-.next
-app
-dist
-.DS_Store
-.db
+# Dependencies
+node_modules/
 
-# Environment variables
+# Expo
+.expo/
+dist/
+web-build/
+
+# Android
+android/.idea/
+android/gradlew
+android/gradlew.bat
+android/local.properties
+android/*.iml
+android/build/
+android/app/build/
+
+# iOS
+ios/.xcode.env
+ios/Pods/
+ios/build/
+
+# Native builds
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# Metro
+.metro-health-check*
+
+# Debug
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# macOS
+.DS_Store
+*.pem
+
+# Local env files
+.env*.local
 .env
-.env.local
-.env.development
-.env.production
-.vercel
+
+# TypeScript
+*.tsbuildinfo
+
+# Testing
+coverage/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+Thumbs.db
+
+# Logs
+*.log
+*.lcov
+
+# Cache
+.cache/
+.expo/cache/
+
+# Temporary files
+*.tmp
+*.temp

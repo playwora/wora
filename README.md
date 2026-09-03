@@ -1,99 +1,226 @@
-> [!IMPORTANT]  
-> There is a migrated version which is being built with tauri (rust 🦀). During this time contributions to this repo are severely limited and only critical fixes would be merged. Please join our [Discord](https://discord.gg/CrAbAYMGCe) to follow updates on the new version.
+# Wora Mobile - Android Music Player
 
-<p align="center">
-  <img src="https://github.com/playwora/wora/blob/main/renderer/public/github/Header.png?raw=true" alt="Wora Logo" />
-</p>
+A beautiful mobile music player for audiophiles with offline lyrics support. This is the mobile version of [Wora Desktop](https://github.com/playwora/wora), built with React Native and Expo.
 
-<p align="center">
-  <a href="https://github.com/playwora/wora"><img alt="GitHub Actions Workflow Status" src="https://img.shields.io/github/actions/workflow/status/playwora/wora/release.yml"></a>
-  <a href="https://github.com/playwora/wora"><img src="https://img.shields.io/github/last-commit/playwora/wora/main?commit" alt="Last Commit" /></a>
-  <a href="LICENSE"><img src="https://img.shields.io/github/license/playwora/wora?license" alt="License" /></a>
-  <a href="https://discord.gg/CrAbAYMGCe"><img src="https://dcbadge.limes.pink/api/server/https://discord.gg/CrAbAYMGCe?style=flat" alt="Discord" /></a>
-  <a href="https://github.com/playwora/wora/stargazers"><img src="https://img.shields.io/github/stars/playwora/wora?style=flat&stars" alt="GitHub Stars" /></a>
-  <a href="https://github.com/playwora/wora/network"><img src="https://img.shields.io/github/forks/playwora/wora?style=flat&forks" alt="GitHub Forks" /></a>
-  <a href="https://github.com/playwora/wora/releases"><img alt="GitHub Downloads" src="https://img.shields.io/github/downloads/playwora/wora/total?style=flat"></a>
-</p>
+## Features
 
-## ⭐️ Description
+- **Music Library**: Organize and browse your music collection
+- **Playlists**: Create and manage custom playlists
+- **Lyrics**: View synchronized and unsynced lyrics
+- **Offline Lyrics**: Cache lyrics for offline viewing
+- **Album Art**: Display album covers from your music files
+- **Search**: Find songs, albums, and playlists quickly
+- **Playback Controls**: Play, pause, skip, shuffle, repeat
+- **Now Playing**: Full-screen player with progress bar
+- **Dark Theme**: Beautiful dark UI optimized for mobile
 
-**Wora** is a beautiful player for audiophiles. An open-source lossless music player app that lets you organize and play your favorite tracks seamlessly. With Wora, you can:
+## Screens
 
-- Create and manage playlists 🎉
-- Stream FLACs, WAVs apart from regular music extensions 🎧
-- Quick play using command menu ⌨️
-- View synced and unsynced lyrics 💬
-- Admire the beautiful UI ✨
+- **Home**: Overview with recent songs, albums, and playlists
+- **Library**: Browse songs, albums, and artists
+- **Playlists**: View and manage your playlists
+- **Settings**: Configure app preferences
+- **Album Detail**: View album information and tracks
+- **Artist Detail**: View artist information, songs, and albums
+- **Playlist Detail**: View and manage playlist songs
+- **Now Playing**: Full-screen player with lyrics
+- **Lyrics**: View and cache lyrics for offline use
+- **Search**: Find music in your library
+- **Setup**: Initial configuration
 
-<p align="center">
-  <img src="https://github.com/playwora/wora/blob/main/renderer/public/github/Home%20Page.png?raw=true" alt="Screenshot 1" />
-  <img src="https://github.com/playwora/wora/blob/main/renderer/public/github/Search%20Console.png?raw=true" alt="Screenshot 2" />
-  <img src="https://github.com/playwora/wora/blob/main/renderer/public/github/Album%20Page.png?raw=true" alt="Screenshot 3" />
-  <img src="https://github.com/playwora/wora/blob/main/renderer/public/github/Synced%20Lyrics.png?raw=true" alt="Screenshot 4" />
-</p>
+## Requirements
 
-## 🚀 Getting Started
+- Node.js 18+
+- Yarn or npm
+- Expo CLI
+- Android Studio (for Android development)
+- Java Development Kit (JDK) 11+
 
-A bit simpler process would be to download the latest build through [here](https://github.com/playwora/wora/releases/). But if you want to fiddle around, then please follow the below steps which would help you get started. If you encounter any issues, support is available through our discord server 🛠️
+## Installation
 
-<a href="https://discord.gg/CrAbAYMGCe"><img src="https://dcbadge.limes.pink/api/server/https://discord.gg/CrAbAYMGCe?style=flat" alt="Discord" /></a>
+1. Clone the repository:
+```bash
+git clone https://github.com/playwora/wora.git
+cd wora-mobile
+```
 
-### 〽️ Prerequisites
+2. Install dependencies:
+```bash
+yarn install
+# or
+npm install
+```
 
-- [Node.js](https://nodejs.org/) v14 or higher
-- [Git](https://git-scm.com/) for obvious reasons
-- [Bun](https://bun.sh/) for dependencies
+3. Start the development server:
+```bash
+yarn start
+# or
+npm start
+```
 
-### 👾 Installation
+4. Run on Android:
+```bash
+yarn android
+# or
+npm run android
+```
 
-1. **Clone the repository:**
+## Building APK
 
-   ```sh
-   git clone https://github.com/playwora/wora.git
-   cd wora
-   ```
+To build a production APK for Android 16+ (API level 23+):
 
-2. **Install the dependencies:**
+1. Install Expo CLI globally:
+```bash
+npm install -g expo-cli
+```
 
-   ```sh
-   bun install
-   ```
+2. Prebuild the project:
+```bash
+expo prebuild --platform android
+```
 
-3. **Start the application:**
+3. Build the APK:
+```bash
+cd android
+./gradlew assembleDebug
+```
 
-   ```sh
-   bun run dev
-   ```
+The APK will be generated in `android/app/build/outputs/apk/debug/`.
 
-4. **Build the application**
+For a release build:
+```bash
+cd android
+./gradlew assembleRelease
+```
 
-   ```sh
-   bun run build
-   ```
+## Android Configuration
 
-## 🤝 Contributing
+The app is configured to support Android 16+ (API level 23). The `app.json` and `app.json` files include the necessary permissions:
 
-Contributions are always welcome! Please read the [Contributing Guide](CONTRIBUTING.md) to learn about the process and how to submit your contributions.
+- `READ_EXTERNAL_STORAGE`: Read music files
+- `WRITE_EXTERNAL_STORAGE`: Write app data
+- `READ_MEDIA_AUDIO`: Access audio files
+- `MANAGE_EXTERNAL_STORAGE`: Manage storage (optional)
+
+## Project Structure
+
+```
+wora-mobile/
+├── App.tsx                    # Main app component
+├── src/
+│   ├── context/               # React context providers
+│   │   └── PlayerContext.tsx  # Player state and controls
+│   ├── database/              # SQLite database operations
+│   │   ├── index.ts           # Database functions
+│   │   └── schema.ts          # Database schema
+│   ├── lib/                   # Utility functions
+│   │   ├── lyrics.ts          # Lyrics fetching and caching
+│   │   └── scanner.ts         # Music library scanner
+│   ├── screens/               # App screens
+│   │   ├── AlbumDetailScreen.tsx
+│   │   ├── ArtistDetailScreen.tsx
+│   │   ├── HomeScreen.tsx
+│   │   ├── LibraryScreen.tsx
+│   │   ├── LyricsScreen.tsx
+│   │   ├── NowPlayingScreen.tsx
+│   │   ├── PlaylistDetailScreen.tsx
+│   │   ├── PlaylistsScreen.tsx
+│   │   ├── SearchScreen.tsx
+│   │   ├── SettingsScreen.tsx
+│   │   ├── SongDetailScreen.tsx
+│   │   └── SetupScreen.tsx
+│   ├── types/                 # TypeScript type definitions
+│   │   └── index.ts
+│   └── utils/                 # Utility components and hooks
+├── assets/                    # Static assets (icons, splash screen)
+├── package.json               # Project dependencies
+├── app.json                   # Expo configuration
+└── tsconfig.json              # TypeScript configuration
+```
+
+## Key Features Implementation
+
+### 1. Music Folder System
+
+The app uses the same music folder system as the desktop version. Users can select a folder during setup, and the app will scan for audio files recursively.
+
+Supported audio formats:
+- MP3, MPEG, OPUS, OGG, OGA, WAV, AAC, CAF
+- M4A, M4B, MP4, WEBA, WEBM, DOLBY, FLAC
+
+### 2. Lyrics System
+
+- **Online Fetching**: Fetches lyrics from LRCLIB API
+- **Synced Lyrics**: Supports synchronized lyrics with timestamps
+- **Offline Caching**: Cache lyrics for playlists to view offline
+- **Playlist Lyrics**: Cache entire playlist lyrics at once
+
+### 3. Database
+
+Uses SQLite via `expo-sqlite` with the following tables:
+- `settings`: App configuration
+- `albums`: Album information
+- `songs`: Song metadata
+- `playlists`: Playlist information
+- `playlistSongs`: Playlist-song relationships
+- `playlistLyricsCache`: Cached lyrics for offline viewing
+- `favorites`: User's favorite songs
+
+### 4. Audio Playback
+
+Uses `expo-av` for audio playback with:
+- Play/pause controls
+- Seek functionality
+- Progress tracking
+- Playback status updates
+
+## Offline Lyrics Feature
+
+The app includes a feature to cache lyrics for entire playlists:
+
+1. When viewing a playlist, tap the "Cache Lyrics" button
+2. The app will fetch and cache lyrics for all songs in the playlist
+3. Lyrics can then be viewed offline
+4. Cached lyrics are stored in the `playlistLyricsCache` table
+5. Users can clear the cache when needed
+
+## Customization
+
+The app uses a consistent dark theme with the following color palette:
+- Background: `#1a1a2e` (dark blue)
+- Cards: `#374151` (lighter blue)
+- Accent: `#6366f1` (indigo)
+- Text: `#fff` (white), `#d1d5db` (light gray), `#9ca3af` (gray)
+
+## Troubleshooting
+
+### Android Permissions
+
+If the app can't access music files:
+1. Ensure storage permissions are granted
+2. On Android 11+, you may need to grant "Manage all files" permission
+3. The app will prompt for permissions on first launch
+
+### Database Issues
+
+If the library doesn't load:
+1. Clear app data and restart
+2. Check that the music folder path is correct
+3. Verify that audio files exist in the selected folder
+
+## Contributing
 
 1. Fork the repository
-2. Create a new branch (`git checkout -b feature-branch`)
-3. Commit your changes (`git commit -am 'Add new feature'`)
-4. Push to the branch (`git push origin feature-branch`)
-5. Create a new Pull Request
+2. Create a feature branch
+3. Make your changes
+4. Submit a pull request
 
-## 💬 Join the Community
+## License
 
-Join our [Discord server](https://discord.gg/CrAbAYMGCe) to connect with other users and developers.
+MIT License - Same as the desktop version.
 
-<a href="https://discord.gg/CrAbAYMGCe"><img src="https://dcbadge.limes.pink/api/server/https://discord.gg/CrAbAYMGCe?style=flat" alt="Discord"></a>
+## Credits
 
----
-
-<br />
-<a href="https://vercel.com/oss">
-  <img alt="Vercel OSS Program" src="https://vercel.com/oss/program-badge.svg" />
-</a>
-<br />
-<br />
-
-MIT License. Made with ❤️ by [hiaaryan](https://github.com/hiaaryan) and contributors.
+- Original desktop app: [Wora by Aaryan Kapoor](https://github.com/playwora/wora)
+- Mobile port: Built with Expo and React Native
+- Icons: Ionicons from Ionic Framework

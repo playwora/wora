@@ -1,0 +1,196 @@
+name: Build and Release Android APK
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version number (e.g., 0.4.0)'
+        required: true
+        default: '0.4.0-beta2'
+      release-type:
+        description: 'Release type'
+        required: true
+        default: 'prerelease'
+        type: choice
+        options:
+          - prerelease
+          - release
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Install Expo CLI
+        run: npm install -g expo-cli
+
+      - name: Cache Expo modules
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.npm
+            ~/.cache/expo
+          key: ${{ runner.os }}-expo-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-expo-
+
+      - name: Update version in app.json
+        run: |
+          VERSION=${{ github.event.inputs.version || github.ref_name }}
+          # Remove 'v' prefix if present
+          CLEAN_VERSION=${VERSION#v}
+          # Update app.json
+          sed -i "s/\"version\": \"[^\"]*\"/\"version\": \"$CLEAN_VERSION\"/g" app.json
+          # Update package.json
+          sed -i "s/\"version\": \"[^\"]*\"/\"version\": \"$CLEAN_VERSION\"/g" package.json
+          echo "Updated version to: $CLEAN_VERSION"
+
+      - name: Prebuild Android
+        run: npx expo prebuild --platform android --no-install
+        env:
+          EXPO_NO_DEV_TOOLS: 1
+
+      - name: Setup Java
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          android-version: 34
+          build-tools-version: 34.0.0
+          ndk-version: 25.2.9519653
+          cmake-version: 3.22.1
+
+      - name: Cache Gradle
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Build Release APK
+        run: |
+          cd android
+          # Build bundle first
+          ./gradlew bundleRelease --no-daemon --stacktrace
+          # Build APK from bundle
+          ./gradlew assembleRelease --no-daemon --stacktrace
+        env:
+          ANDROID_NDK_HOME: ${{ env.ANDROID_HOME }}/ndk/${{ steps.setup-android.outputs.ndk-version }}
+
+      - name: Rename APK
+        run: |
+          cd android/app/build/outputs/apk/release
+          mv app-release.apk wora-mobile-release.apk
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: wora-mobile-release-apk
+          path: android/app/build/outputs/apk/release/wora-mobile-release.apk
+          compression-level: 0
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download APK artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: wora-mobile-release-apk
+
+      - name: Get version
+        id: version
+        run: |
+          VERSION=${{ github.event.inputs.version || github.ref_name }}
+          CLEAN_VERSION=${VERSION#v}
+          echo "version=$CLEAN_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: wora-mobile-release.apk
+          name: Wora Mobile v${{ steps.version.outputs.version }}
+          tag_name: v${{ steps.version.outputs.version }}
+          body: |
+            ## Wora Mobile - Android APK
+            
+            A beautiful mobile music player for audiophiles with offline lyrics support.
+            
+            ### Features
+            - **Music Library**: Organize and browse your music collection
+            - **Playlists**: Create and manage custom playlists
+            - **Lyrics**: View synchronized and unsynced lyrics
+            - **Offline Lyrics**: Cache lyrics for playlists to view offline
+            - **Album Art**: Display album covers from your music files
+            - **Search**: Find songs, albums, and playlists quickly
+            - **Playback Controls**: Play, pause, skip, shuffle, repeat
+            - **Now Playing**: Full-screen player with progress bar
+            - **Dark Theme**: Beautiful dark UI optimized for mobile
+            
+            ### What's New
+            - Complete mobile port of Wora Desktop
+            - Offline lyrics caching for playlists
+            - Android 16+ (API 23+) support
+            
+            ### Requirements
+            - Android 6.0+ (API 23+)
+            
+            ### Installation
+            Download and install the APK file directly to your Android device.
+            
+            ### Build Information
+            - Version: v${{ steps.version.outputs.version }}
+            - Build Date: ${{ github.event.head_commit.timestamp || github.event.repository.pushed_at }}
+            - Commit: ${{ github.sha }}
+          draft: false
+          prerelease: ${{ github.event.inputs.release-type == 'prerelease' || contains(github.ref_name, 'beta') || contains(github.ref_name, 'alpha') }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  notify:
+    needs: release
+    runs-on: ubuntu-latest
+    if: always()
+
+    steps:
+      - name: Slack Notification (Success)
+        if: success()
+        uses: rtCamp/action-slack-notify@v2
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+          SLACK_COLOR: good
+          SLACK_TITLE: "Wora Mobile Build Success"
+          SLACK_MESSAGE: "Android APK built and released successfully"
+
+      - name: Slack Notification (Failure)
+        if: failure()
+        uses: rtCamp/action-slack-notify@v2
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+          SLACK_COLOR: danger
+          SLACK_TITLE: "Wora Mobile Build Failed"
+          SLACK_MESSAGE: "Android APK build failed. Check the workflow logs."
