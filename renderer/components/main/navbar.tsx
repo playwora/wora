@@ -9,6 +9,7 @@ import {
   IconVinyl,
   IconUser,
   IconArrowLeft,
+  IconAdjustmentsHorizontal,
 } from "@tabler/icons-react";
 import {
   Tooltip,
@@ -62,9 +63,12 @@ const Navbar = () => {
     setMounted(true);
     const checkBackButton = () => {
       const path = router.pathname;
-      const isDetailPage = path.includes('/artists/[') || path.includes('/albums/[') || path.includes('/playlists/[');
+      const isDetailPage =
+        path.includes("/artists/[") ||
+        path.includes("/albums/[") ||
+        path.includes("/playlists/[");
       const shouldShow = isDetailPage && window.history.length > 1;
-      
+
       if (shouldShow !== canGoBack) {
         setCanGoBack(shouldShow);
         if (shouldShow) {
@@ -75,9 +79,9 @@ const Navbar = () => {
       }
     };
     checkBackButton();
-    router.events.on('routeChangeComplete', checkBackButton);
+    router.events.on("routeChangeComplete", checkBackButton);
     return () => {
-      router.events.off('routeChangeComplete', checkBackButton);
+      router.events.off("routeChangeComplete", checkBackButton);
     };
   }, [router, canGoBack]);
 
@@ -106,6 +110,11 @@ const Navbar = () => {
       href: "/artists",
       icon: <IconUser stroke={2} size={20} />,
       label: "Artists",
+    },
+    {
+      href: "/equalizer",
+      icon: <IconAdjustmentsHorizontal stroke={2} size={20} />,
+      label: "Equalizer",
     },
   ];
 
@@ -149,11 +158,13 @@ const Navbar = () => {
         e.preventDefault();
 
         if (router.pathname === href) {
-          const viewport = document.querySelector('[data-radix-scroll-area-viewport]');
+          const viewport = document.querySelector(
+            "[data-radix-scroll-area-viewport]",
+          );
           if (viewport) {
             (viewport as HTMLElement).scrollTop = 0;
           }
-          
+
           if (href === "/albums") {
             window.ipc.send("resetAlbumsPageState", null);
           } else if (href === "/songs") {
@@ -267,7 +278,9 @@ const Navbar = () => {
           <div className="wora-border flex w-18 flex-col items-center gap-10 rounded-2xl p-8 transition-all duration-300 ease-in-out">
             <div
               className={`transition-all duration-300 ease-in-out ${
-                canGoBack ? 'max-h-12 opacity-100' : 'max-h-0 opacity-0 -mt-10 overflow-hidden'
+                canGoBack
+                  ? "max-h-12 opacity-100"
+                  : "-mt-10 max-h-0 overflow-hidden opacity-0"
               }`}
             >
               {(canGoBack || isBackButtonVisible) && (
@@ -277,7 +290,9 @@ const Navbar = () => {
                       variant="ghost"
                       onClick={() => router.back()}
                       className={`transition-all duration-300 ${
-                        isBackButtonVisible ? 'scale-100 opacity-100' : 'scale-95 opacity-0'
+                        isBackButtonVisible
+                          ? "scale-100 opacity-100"
+                          : "scale-95 opacity-0"
                       }`}
                     >
                       <IconArrowLeft stroke={2} className="w-5" />
@@ -289,7 +304,7 @@ const Navbar = () => {
                 </Tooltip>
               )}
             </div>
-            
+
             {navLinks.map((link) => (
               <Tooltip key={link.href} delayDuration={0}>
                 <TooltipTrigger asChild>
@@ -330,7 +345,7 @@ const Navbar = () => {
               </Button>
             </TooltipTrigger>
             <TooltipContent side="right" sideOffset={25}>
-              <p className="capitalize">Theme: {mounted ? theme : 'system'}</p>
+              <p className="capitalize">Theme: {mounted ? theme : "system"}</p>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>

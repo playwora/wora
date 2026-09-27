@@ -10,6 +10,7 @@ export const settings = sqliteTable("settings", {
   lastFmSessionKey: text("lastFmSessionKey"),
   enableLastFm: integer("enableLastFm", { mode: "boolean" }).default(false),
   scrobbleThreshold: integer("scrobbleThreshold").default(50),
+  activeEqDevice: text("activeEqDevice").default("Default"),
 });
 
 export const albums = sqliteTable("albums", {
@@ -67,3 +68,20 @@ export const playlistSongRelations = relations(playlistSongs, ({ one }) => ({
   }),
   song: one(songs, { fields: [playlistSongs.songId], references: [songs.id] }),
 }));
+
+// Named output devices (e.g. "Default", "Notebook", "Headphones X").
+// Each device has its own set of per-track / per-album EQ curves.
+export const devices = sqliteTable("devices", {
+  id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+  name: text("name").notNull().unique(),
+});
+
+// Per-device, per-track / per-album equalizer curves.
+// device: device name; scope: "track" | "album"; key: trackId or albumKey; curve: JSON.
+export const eqSettings = sqliteTable("eqSettings", {
+  id: integer("id", { mode: "number" }).primaryKey({ autoIncrement: true }),
+  device: text("device").notNull().default("Default"),
+  scope: text("scope").notNull(),
+  key: text("key").notNull(),
+  curve: text("curve").notNull(),
+});

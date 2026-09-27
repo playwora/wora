@@ -42,5 +42,18 @@ export const initDatabase = async () => {
         FOREIGN KEY (playlistId) REFERENCES playlists(id),
         Foreign KEY (songId) REFERENCES songs(id)
       );
+      CREATE TABLE IF NOT EXISTS devices (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL UNIQUE
+      );
+      CREATE TABLE IF NOT EXISTS eqSettings (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        device TEXT NOT NULL DEFAULT 'Default',
+        scope TEXT NOT NULL,
+        key TEXT NOT NULL,
+        curve TEXT NOT NULL,
+        UNIQUE(device, scope, key)
+      );
   `);
+  sqlite.exec("INSERT OR IGNORE INTO devices (name) VALUES ('Default');");
 };

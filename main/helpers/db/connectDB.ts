@@ -1,5 +1,13 @@
 import { and, eq, like, sql, or, exists, isNotNull } from "drizzle-orm";
-import { albums, songs, settings, playlistSongs, playlists } from "./schema";
+import {
+  albums,
+  songs,
+  settings,
+  playlistSongs,
+  playlists,
+  eqSettings,
+  devices,
+} from "./schema";
 import fs from "fs";
 import { parseFile, selectCover } from "music-metadata";
 import path from "path";
@@ -944,6 +952,49 @@ export const migrateDatabase = async () => {
       console.log("Database schema is up to date, no migration needed.");
     }
 
+    // --- Equalizer device-layer migration ---
+    // 1) Add `device` dimension to eqSettings (recreate table to change UNIQUE).
+    const eqInfo = sqlite
+      .prepare("PRAGMA table_info(eqSettings)")
+      .all() as Array<{ name: string }>;
+    if (eqInfo.length > 0 && !eqInfo.some((c) => c.name === "device")) {
+      console.log("Migrating eqSettings to device-aware schema...");
+      sqlite.exec(`
+        CREATE TABLE IF NOT EXISTS eqSettings_new (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          device TEXT NOT NULL DEFAULT 'Default',
+          scope TEXT NOT NULL,
+          key TEXT NOT NULL,
+          curve TEXT NOT NULL,
+          UNIQUE(device, scope, key)
+        );
+        INSERT INTO eqSettings_new (device, scope, key, curve)
+          SELECT 'Default', scope, key, curve FROM eqSettings;
+        DROP TABLE eqSettings;
+        ALTER TABLE eqSettings_new RENAME TO eqSettings;
+      `);
+      console.log(
+        "eqSettings migrated (existing curves assigned to 'Default').",
+      );
+    }
+
+    // 2) Devices table + seed the Default device.
+    sqlite.exec(`
+      CREATE TABLE IF NOT EXISTS devices (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL UNIQUE
+      );
+    `);
+    sqlite.exec("INSERT OR IGNORE INTO devices (name) VALUES ('Default');");
+
+    // 3) Active device pointer on settings.
+    if (!columnNames.includes("activeEqDevice")) {
+      sqlite.exec(
+        "ALTER TABLE settings ADD COLUMN activeEqDevice TEXT DEFAULT 'Default'",
+      );
+      console.log("Added column: activeEqDevice");
+    }
+
     return true;
   } catch (error) {
     console.error("Error during database migration:", error);
@@ -1290,5 +1341,203 @@ export const getLastFmSettings = async () => {
       enableLastFm: false,
       scrobbleThreshold: 50,
     };
+  }
+};
+
+// ---- Equalizer (per-device, per-track / per-album) ----
+
+const DEFAULT_DEVICE = "Default";
+const dev = (d?: string) => (d && d.trim() ? d : DEFAULT_DEVICE);
+
+// Get one stored curve (parsed) for a device+scope+key, or null.
+export const getEqSetting = async (
+  device: string,
+  scope: string,
+  key: string,
+) => {
+  try {
+    const row = await db
+      .select({ curve: eqSettings.curve })
+      .from(eqSettings)
+      .where(
+        and(
+          eq(eqSettings.device, dev(device)),
+          eq(eqSettings.scope, scope),
+          eq(eqSettings.key, key),
+        ),
+      )
+      .limit(1);
+    if (row.length === 0) return null;
+    try {
+      return JSON.parse(row[0].curve);
+    } catch {
+      return null;
+    }
+  } catch (error) {
+    console.error("Error getting EQ setting:", error);
+    return null;
+  }
+};
+
+// Upsert a curve for device+scope+key.
+export const setEqSetting = async (
+  device: string,
+  scope: string,
+  key: string,
+  curve: unknown,
+) => {
+  try {
+    const json = JSON.stringify(curve);
+    const d = dev(device);
+    const existing = await db
+      .select({ id: eqSettings.id })
+      .from(eqSettings)
+      .where(
+        and(
+          eq(eqSettings.device, d),
+          eq(eqSettings.scope, scope),
+          eq(eqSettings.key, key),
+        ),
+      )
+      .limit(1);
+    if (existing.length === 0) {
+      await db
+        .insert(eqSettings)
+        .values({ device: d, scope, key, curve: json });
+    } else {
+      await db
+        .update(eqSettings)
+        .set({ curve: json })
+        .where(eq(eqSettings.id, existing[0].id));
+    }
+    return true;
+  } catch (error) {
+    console.error("Error setting EQ setting:", error);
+    return false;
+  }
+};
+
+// Delete a stored curve for device+scope+key.
+export const deleteEqSetting = async (
+  device: string,
+  scope: string,
+  key: string,
+) => {
+  try {
+    await db
+      .delete(eqSettings)
+      .where(
+        and(
+          eq(eqSettings.device, dev(device)),
+          eq(eqSettings.scope, scope),
+          eq(eqSettings.key, key),
+        ),
+      );
+    return true;
+  } catch (error) {
+    console.error("Error deleting EQ setting:", error);
+    return false;
+  }
+};
+
+// Resolve the effective curve for a song on a device: track > album > none.
+export const resolveEq = async (
+  device: string,
+  trackId: number,
+  albumKey: string,
+) => {
+  const d = dev(device);
+  const track =
+    trackId != null ? await getEqSetting(d, "track", String(trackId)) : null;
+  if (track && track.enabled) return { curve: track, source: "track" };
+  const album =
+    albumKey != null && albumKey !== ""
+      ? await getEqSetting(d, "album", albumKey)
+      : null;
+  if (album && album.enabled) return { curve: album, source: "album" };
+  return { curve: null, source: "none" };
+};
+
+// ---- EQ devices ----
+
+export const getEqDevices = async () => {
+  try {
+    const rows = await db.select({ name: devices.name }).from(devices);
+    const names = rows.map((r) => r.name);
+    if (!names.includes(DEFAULT_DEVICE)) names.unshift(DEFAULT_DEVICE);
+    return names;
+  } catch (error) {
+    console.error("Error getting EQ devices:", error);
+    return [DEFAULT_DEVICE];
+  }
+};
+
+export const addEqDevice = async (name: string) => {
+  try {
+    const n = (name || "").trim();
+    if (!n) return false;
+    const existing = await db
+      .select({ id: devices.id })
+      .from(devices)
+      .where(eq(devices.name, n))
+      .limit(1);
+    if (existing.length === 0) await db.insert(devices).values({ name: n });
+    return true;
+  } catch (error) {
+    console.error("Error adding EQ device:", error);
+    return false;
+  }
+};
+
+export const deleteEqDevice = async (name: string) => {
+  try {
+    const n = (name || "").trim();
+    if (!n || n === DEFAULT_DEVICE) return false; // never delete Default
+    await db.delete(devices).where(eq(devices.name, n));
+    await db.delete(eqSettings).where(eq(eqSettings.device, n)); // drop its curves
+    // if it was active, fall back to Default
+    const active = await getActiveEqDevice();
+    if (active === n) await setActiveEqDevice(DEFAULT_DEVICE);
+    return true;
+  } catch (error) {
+    console.error("Error deleting EQ device:", error);
+    return false;
+  }
+};
+
+export const getActiveEqDevice = async () => {
+  try {
+    const row = await db
+      .select({ activeEqDevice: settings.activeEqDevice })
+      .from(settings)
+      .limit(1);
+    return row.length && row[0].activeEqDevice
+      ? row[0].activeEqDevice
+      : DEFAULT_DEVICE;
+  } catch (error) {
+    console.error("Error getting active EQ device:", error);
+    return DEFAULT_DEVICE;
+  }
+};
+
+export const setActiveEqDevice = async (name: string) => {
+  try {
+    const n = dev(name);
+    const current = await db
+      .select({ id: settings.id })
+      .from(settings)
+      .limit(1);
+    if (current.length === 0) {
+      await db.insert(settings).values({ activeEqDevice: n });
+    } else {
+      await db
+        .update(settings)
+        .set({ activeEqDevice: n })
+        .where(eq(settings.id, current[0].id));
+    }
+    return true;
+  } catch (error) {
+    console.error("Error setting active EQ device:", error);
+    return false;
   }
 };

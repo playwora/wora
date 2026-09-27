@@ -49,6 +49,7 @@ import {
   useAudioMetadata,
 } from "@/lib/helpers";
 import { Song, usePlayer } from "@/context/playerContext";
+import { attachHowl, applyCurve } from "@/lib/eq";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -70,7 +71,13 @@ import {
 import AutoSizer from "react-virtualized-auto-sizer";
 import ErrorBoundary from "@/components/ErrorBoundary";
 
-const NotificationToast = ({ success, message }: { success: boolean; message: string }) => (
+const NotificationToast = ({
+  success,
+  message,
+}: {
+  success: boolean;
+  message: string;
+}) => (
   <div className="flex w-fit items-center gap-2 text-xs">
     {success ? (
       <IconCheck className="text-green-400" stroke={2} size={16} />
@@ -88,125 +95,142 @@ function getAlbumCoverUrl(song: Song | undefined): string {
   return `wora://${cover}`;
 }
 
-const QueuePanel = memo(({ queue, history, currentIndex, onSongSelect }: {
-  queue: Song[];
-  history: Song[];
-  currentIndex: number;
-  onSongSelect: (song: Song) => void;
-}) => {
-  const ITEM_HEIGHT = 80;
-
-  const VirtualizedSongListItem = ({ index, style, data }: {
-    index: number;
-    style: React.CSSProperties;
-    data: { songs: Song[]; onSongSelect: (song: Song) => void }
+const QueuePanel = memo(
+  ({
+    queue,
+    history,
+    currentIndex,
+    onSongSelect,
+  }: {
+    queue: Song[];
+    history: Song[];
+    currentIndex: number;
+    onSongSelect: (song: Song) => void;
   }) => {
-    const song = data.songs[index];
+    const ITEM_HEIGHT = 80;
+
+    const VirtualizedSongListItem = ({
+      index,
+      style,
+      data,
+    }: {
+      index: number;
+      style: React.CSSProperties;
+      data: { songs: Song[]; onSongSelect: (song: Song) => void };
+    }) => {
+      const song = data.songs[index];
+
+      return (
+        <div style={style}>
+          <li
+            className="flex w-full cursor-pointer items-center gap-4 overflow-hidden rounded-lg p-2 transition-colors hover:bg-black/5 dark:hover:bg-white/5"
+            onClick={() => data.onSongSelect(song)}
+          >
+            <div className="relative min-h-14 min-w-14 overflow-hidden rounded-lg shadow-lg">
+              <Image
+                alt={song.name || "Track"}
+                src={getAlbumCoverUrl(song)}
+                fill
+                priority={false}
+                className="object-cover"
+              />
+            </div>
+            <div className="w-4/5 overflow-hidden">
+              <p className="truncate text-sm font-medium">{song.name}</p>
+              <p className="truncate opacity-50">{song.artist}</p>
+            </div>
+          </li>
+        </div>
+      );
+    };
+
+    const queueSongs = queue.slice(currentIndex + 1);
+    const historySongs = [...history].reverse();
 
     return (
-      <div style={style}>
-        <li
-          className="flex w-full items-center gap-4 overflow-hidden cursor-pointer hover:bg-black/5 dark:hover:bg-white/5 rounded-lg p-2 transition-colors"
-          onClick={() => data.onSongSelect(song)}
-        >
-          <div className="relative min-h-14 min-w-14 overflow-hidden rounded-lg shadow-lg">
-            <Image
-              alt={song.name || "Track"}
-              src={getAlbumCoverUrl(song)}
-              fill
-              priority={false}
-              className="object-cover"
-            />
-          </div>
-          <div className="w-4/5 overflow-hidden">
-            <p className="truncate text-sm font-medium">{song.name}</p>
-            <p className="truncate opacity-50">{song.artist}</p>
-          </div>
-        </li>
+      <div className="wora-border pointer-events-auto relative h-full w-full rounded-2xl bg-white/70 backdrop-blur-xl dark:bg-black/70">
+        <div className="h-utility pointer-events-auto w-full max-w-3xl px-6 pt-6">
+          <Tabs
+            defaultValue="queue"
+            className="pointer-events-auto flex h-full w-full flex-col gap-4 mask-b-from-70%"
+          >
+            <TabsList className="pointer-events-auto w-full">
+              <TabsTrigger
+                value="queue"
+                className="pointer-events-auto w-full cursor-pointer gap-2"
+              >
+                <IconListTree stroke={2} size={15} /> Queue
+              </TabsTrigger>
+              <TabsTrigger
+                value="history"
+                className="pointer-events-auto w-full cursor-pointer gap-2"
+              >
+                <IconClock stroke={2} size={15} /> History
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent
+              value="queue"
+              className="pointer-events-auto min-h-0 flex-1"
+            >
+              {queueSongs.length > 0 ? (
+                <ErrorBoundary>
+                  <AutoSizer>
+                    {({ height, width }) => (
+                      <List
+                        height={height}
+                        width={width}
+                        itemCount={queueSongs.length}
+                        itemSize={ITEM_HEIGHT}
+                        itemData={{ songs: queueSongs, onSongSelect }}
+                        className="no-scrollbar pointer-events-auto"
+                      >
+                        {VirtualizedSongListItem}
+                      </List>
+                    )}
+                  </AutoSizer>
+                </ErrorBoundary>
+              ) : (
+                <div className="pointer-events-none flex h-40 items-center justify-center text-sm opacity-50">
+                  Queue is empty
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent
+              value="history"
+              className="pointer-events-auto min-h-0 flex-1"
+            >
+              {historySongs.length > 0 ? (
+                <ErrorBoundary>
+                  <AutoSizer>
+                    {({ height, width }) => (
+                      <List
+                        height={height}
+                        width={width}
+                        itemCount={historySongs.length}
+                        overscanCount={5}
+                        itemSize={ITEM_HEIGHT}
+                        itemData={{ songs: historySongs, onSongSelect }}
+                        className="no-scrollbar pointer-events-auto"
+                      >
+                        {VirtualizedSongListItem}
+                      </List>
+                    )}
+                  </AutoSizer>
+                </ErrorBoundary>
+              ) : (
+                <div className="pointer-events-none flex h-40 items-center justify-center text-sm opacity-50">
+                  No playback history
+                </div>
+              )}
+            </TabsContent>
+          </Tabs>
+        </div>
       </div>
     );
-  };
-
-  const queueSongs = queue.slice(currentIndex + 1);
-  const historySongs = [...history].reverse();
-
-  return (
-    <div className="wora-border relative h-full w-full rounded-2xl bg-white/70 backdrop-blur-xl dark:bg-black/70 pointer-events-auto">
-      <div className="h-utility w-full max-w-3xl px-6 pt-6 pointer-events-auto">
-        <Tabs
-          defaultValue="queue"
-          className="flex h-full w-full flex-col gap-4 mask-b-from-70% pointer-events-auto"
-        >
-          <TabsList className="w-full pointer-events-auto">
-            <TabsTrigger value="queue" className="w-full gap-2 cursor-pointer pointer-events-auto">
-              <IconListTree stroke={2} size={15} /> Queue
-            </TabsTrigger>
-            <TabsTrigger value="history" className="w-full gap-2 cursor-pointer pointer-events-auto">
-              <IconClock stroke={2} size={15} /> History
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent
-            value="queue"
-            className="flex-1 min-h-0 pointer-events-auto"
-          >
-            {queueSongs.length > 0 ? (
-              <ErrorBoundary>
-                <AutoSizer>
-                  {({ height, width }) => (
-                    <List
-                      height={height}
-                      width={width}
-                      itemCount={queueSongs.length}
-                      itemSize={ITEM_HEIGHT}
-                      itemData={{ songs: queueSongs, onSongSelect }}
-                      className="no-scrollbar pointer-events-auto"
-                    >
-                      {VirtualizedSongListItem}
-                    </List>
-                  )}
-                </AutoSizer>
-              </ErrorBoundary>
-            ) : (
-              <div className="flex h-40 items-center justify-center text-sm opacity-50 pointer-events-none">
-                Queue is empty
-              </div>
-            )}
-          </TabsContent>
-
-          <TabsContent
-            value="history"
-            className="flex-1 min-h-0 pointer-events-auto"
-          >
-            {historySongs.length > 0 ? (
-              <ErrorBoundary>
-                <AutoSizer>
-                  {({ height, width }) => (
-                    <List
-                      height={height}
-                      width={width}
-                      itemCount={historySongs.length}
-                      overscanCount={5}
-                      itemSize={ITEM_HEIGHT}
-                      itemData={{ songs: historySongs, onSongSelect }}
-                      className="no-scrollbar pointer-events-auto"
-                    >
-                      {VirtualizedSongListItem}
-                    </List>
-                  )}
-                </AutoSizer>
-              </ErrorBoundary>
-            ) : (
-              <div className="flex h-40 items-center justify-center text-sm opacity-50 pointer-events-none">
-                No playback history
-              </div>
-            )}
-          </TabsContent>
-        </Tabs>
-      </div>
-    </div>
-  );
-});
+  },
+);
 
 export const Player = () => {
   // Player state
@@ -435,15 +459,18 @@ export const Player = () => {
     setSeekPosition(value[0]);
   }, []);
 
-  const handleVolume = useCallback((value: number[]) => {
-    // Store previous volume before muting (only if not currently muted)
-    if (!isMuted && value[0] > 0.01) {
-      setPreviousVolume(value[0]);
-    }
+  const handleVolume = useCallback(
+    (value: number[]) => {
+      // Store previous volume before muting (only if not currently muted)
+      if (!isMuted && value[0] > 0.01) {
+        setPreviousVolume(value[0]);
+      }
 
-    setIsMuted(value[0] === 0);
-    setVolume(value[0]);
-  }, [isMuted]);
+      setIsMuted(value[0] === 0);
+      setVolume(value[0]);
+    },
+    [isMuted],
+  );
 
   const toggleMute = useCallback(() => {
     if (!isMuted) {
@@ -474,13 +501,19 @@ export const Player = () => {
     }
   }, [isMuted, volume, previousVolume]);
 
-  const handleVolumeWheel = useCallback((event: WheelEvent) => {
-    event.preventDefault();
-    const delta = event.deltaY > 0 ? -0.05 : 0.05; // Scroll down decreases, scroll up increases
-    const newVolume = Math.max(0, Math.min(1, Math.round((volume + delta) * 100) / 100));
-    console.log(`Volume changed: ${newVolume}`);
-    handleVolume([newVolume]);
-  }, [volume, handleVolume]);
+  const handleVolumeWheel = useCallback(
+    (event: WheelEvent) => {
+      event.preventDefault();
+      const delta = event.deltaY > 0 ? -0.05 : 0.05; // Scroll down decreases, scroll up increases
+      const newVolume = Math.max(
+        0,
+        Math.min(1, Math.round((volume + delta) * 100) / 100),
+      );
+      console.log(`Volume changed: ${newVolume}`);
+      handleVolume([newVolume]);
+    },
+    [volume, handleVolume],
+  );
 
   const toggleFavourite = useCallback((id: number) => {
     if (!id) return;
@@ -489,68 +522,86 @@ export const Player = () => {
     setIsFavourite((prev) => !prev);
   }, []);
 
-  const handleKeyDown = useCallback((event: KeyboardEvent) => {
-    // Only handle keyboard shortcuts if we're not focused on an input element
-    if (event.target instanceof HTMLElement &&
-      ['INPUT', 'TEXTAREA', 'SELECT'].includes(event.target.tagName)) {
-      return;
-    }
-
-    // Spacebar for play/pause (prevent page scroll)
-    if (event.code === 'Space') {
-      event.preventDefault();
-      handlePlayPause();
-      return;
-    }
-
-    // Like/Dislike Song: Alt + Shift + B
-    if (event.altKey && event.shiftKey && event.code === 'KeyB') {
-      // No preventDefault needed for this combo
-      if (song?.id) {
-        toggleFavourite(song.id);
+  const handleKeyDown = useCallback(
+    (event: KeyboardEvent) => {
+      // Only handle keyboard shortcuts if we're not focused on an input element
+      if (
+        event.target instanceof HTMLElement &&
+        ["INPUT", "TEXTAREA", "SELECT"].includes(event.target.tagName)
+      ) {
+        return;
       }
-      return;
-    }
 
-    // Shuffle: Alt + S (Mac) | Ctrl/Cmd + S (Windows)
-    if (((event.altKey && navigator.platform.includes('Mac')) ||
-      (event.ctrlKey && !navigator.platform.includes('Mac'))) &&
-      event.code === 'KeyS') {
-      event.preventDefault(); // Prevent browser save dialog
-      toggleShuffle();
-      return;
-    }
+      // Spacebar for play/pause (prevent page scroll)
+      if (event.code === "Space") {
+        event.preventDefault();
+        handlePlayPause();
+        return;
+      }
 
-    // Repeat: Alt + R (Mac) | Ctrl/Cmd + R (Windows)
-    if (((event.altKey && navigator.platform.includes('Mac')) ||
-      (event.ctrlKey && !navigator.platform.includes('Mac'))) &&
-      event.code === 'KeyR') {
-      event.preventDefault(); // Prevent browser refresh
-      toggleRepeat();
-      return;
-    }
+      // Like/Dislike Song: Alt + Shift + B
+      if (event.altKey && event.shiftKey && event.code === "KeyB") {
+        // No preventDefault needed for this combo
+        if (song?.id) {
+          toggleFavourite(song.id);
+        }
+        return;
+      }
 
-    // Mute/Unmute: M
-    if (event.code === 'KeyM') {
-      // No preventDefault needed for M key
-      toggleMute();
-      return;
-    }
+      // Shuffle: Alt + S (Mac) | Ctrl/Cmd + S (Windows)
+      if (
+        ((event.altKey && navigator.platform.includes("Mac")) ||
+          (event.ctrlKey && !navigator.platform.includes("Mac"))) &&
+        event.code === "KeyS"
+      ) {
+        event.preventDefault(); // Prevent browser save dialog
+        toggleShuffle();
+        return;
+      }
 
-    // Go to Previous: Up Arrow
-    if (event.code === 'ArrowUp') {
-      event.preventDefault(); // Prevent page scroll
-      previousSong();
-      return;
-    }
+      // Repeat: Alt + R (Mac) | Ctrl/Cmd + R (Windows)
+      if (
+        ((event.altKey && navigator.platform.includes("Mac")) ||
+          (event.ctrlKey && !navigator.platform.includes("Mac"))) &&
+        event.code === "KeyR"
+      ) {
+        event.preventDefault(); // Prevent browser refresh
+        toggleRepeat();
+        return;
+      }
 
-    // Go to Next: Down Arrow
-    if (event.code === 'ArrowDown') {
-      event.preventDefault(); // Prevent page scroll
-      nextSong();
-      return;
-    }
-  }, [handlePlayPause, song, toggleFavourite, toggleShuffle, toggleRepeat, toggleMute, previousSong, nextSong]);
+      // Mute/Unmute: M
+      if (event.code === "KeyM") {
+        // No preventDefault needed for M key
+        toggleMute();
+        return;
+      }
+
+      // Go to Previous: Up Arrow
+      if (event.code === "ArrowUp") {
+        event.preventDefault(); // Prevent page scroll
+        previousSong();
+        return;
+      }
+
+      // Go to Next: Down Arrow
+      if (event.code === "ArrowDown") {
+        event.preventDefault(); // Prevent page scroll
+        nextSong();
+        return;
+      }
+    },
+    [
+      handlePlayPause,
+      song,
+      toggleFavourite,
+      toggleShuffle,
+      toggleRepeat,
+      toggleMute,
+      previousSong,
+      nextSong,
+    ],
+  );
 
   const handleLyricClick = useCallback((time: number) => {
     if (!soundRef.current) return;
@@ -595,14 +646,61 @@ export const Player = () => {
     [],
   );
 
-  const handleSongSelect = useCallback((selectedSong: Song) => {
-    // Find the song in the current queue and jump to it
-    const songIndex = queue.findIndex(song => song.id === selectedSong.id);
-    if (songIndex !== -1) {
-      // Use the jumpToSong function which preserves history
-      jumpToSong(songIndex);
+  // Active EQ device (its own set of per-track/album curves).
+  const activeEqDevice = useRef<string>("Default");
+
+  // Equalizer: resolve the effective curve (device -> track > album > none) live.
+  const applyResolvedEq = useCallback((s: Song | null) => {
+    if (!s) {
+      applyCurve(null);
+      return;
     }
-  }, [queue, jumpToSong]);
+    const albumKey = String(s.album?.id ?? s.album?.name ?? "");
+    window.ipc
+      .invoke("resolveEq", {
+        device: activeEqDevice.current,
+        trackId: s.id,
+        albumKey,
+      })
+      .then((res: any) => applyCurve(res?.curve || null))
+      .catch(() => {});
+  }, []);
+
+  // Load the active device once, and track changes to it.
+  useEffect(() => {
+    window.ipc
+      .invoke("getActiveEqDevice")
+      .then((d: string) => {
+        activeEqDevice.current = d || "Default";
+        applyResolvedEq(song);
+      })
+      .catch(() => {});
+    const remove = window.ipc.on("eqDeviceChanged", (name: string) => {
+      activeEqDevice.current = name || "Default";
+      applyResolvedEq(song);
+    });
+    return remove;
+  }, [song, applyResolvedEq]);
+
+  // Re-apply EQ when a curve is saved/removed elsewhere (e.g. the Equalizer page)
+  useEffect(() => {
+    const remove = window.ipc.on("eqSettingsChanged", () =>
+      applyResolvedEq(song),
+    );
+    return remove;
+  }, [song, applyResolvedEq]);
+
+  const handleSongSelect = useCallback(
+    (selectedSong: Song) => {
+      // Find the song in the current queue and jump to it
+      const songIndex = queue.findIndex((song) => song.id === selectedSong.id);
+      if (songIndex !== -1) {
+        // Use the jumpToSong function which preserves history
+        jumpToSong(songIndex);
+      }
+    },
+    [queue, jumpToSong],
+  );
 
   // Enable client-side rendering
   useEffect(() => {
@@ -631,18 +729,20 @@ export const Player = () => {
     const volumeSlider = volumeSliderRef.current;
     if (!volumeSlider) return;
 
-    volumeSlider.addEventListener('wheel', handleVolumeWheel, { passive: false });
+    volumeSlider.addEventListener("wheel", handleVolumeWheel, {
+      passive: false,
+    });
 
     return () => {
-      volumeSlider.removeEventListener('wheel', handleVolumeWheel);
+      volumeSlider.removeEventListener("wheel", handleVolumeWheel);
     };
   }, [handleVolumeWheel]);
 
   useEffect(() => {
-    document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener("keydown", handleKeyDown);
 
     return () => {
-      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener("keydown", handleKeyDown);
     };
   }, [handleKeyDown]);
 
@@ -738,6 +838,13 @@ export const Player = () => {
         setIsPlaying(true);
         updateDiscordState(1, song);
         window.ipc.send("update-window", [true, song?.artist, song?.name]);
+        // Wire the EQ graph to this track's audio element and apply its curve.
+        try {
+          attachHowl(sound);
+          applyResolvedEq(song);
+        } catch (e) {
+          console.warn("[eq] attach failed:", e);
+        }
       },
       onloaderror: (error) => {
         console.error("Error loading audio:", error);
@@ -949,7 +1056,14 @@ export const Player = () => {
       </div>
 
       <div className="!absolute top-0 right-0 w-96">
-        {showQueue && <QueuePanel queue={queue} history={history} currentIndex={currentIndex} onSongSelect={handleSongSelect} />}
+        {showQueue && (
+          <QueuePanel
+            queue={queue}
+            history={history}
+            currentIndex={currentIndex}
+            onSongSelect={handleSongSelect}
+          />
+        )}
       </div>
 
       <div className="wora-border h-28 w-full overflow-hidden rounded-2xl p-6">
@@ -1156,7 +1270,7 @@ export const Player = () => {
                     <TooltipTrigger asChild>
                       <Button
                         variant="ghost"
-                        className="opacity-100! flex justify-center items-center"
+                        className="flex items-center justify-center opacity-100!"
                         onClick={() => toggleFavourite(song?.id)}
                         disabled={!song}
                       >
@@ -1239,7 +1353,7 @@ export const Player = () => {
                   <DialogTrigger
                     className={
                       song
-                        ? "opacity-30 duration-500 hover:opacity-100 cursor-pointer"
+                        ? "cursor-pointer opacity-30 duration-500 hover:opacity-100"
                         : "cursor-not-allowed text-red-500 opacity-75"
                     }
                     disabled={!song}

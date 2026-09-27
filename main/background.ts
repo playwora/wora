@@ -30,6 +30,15 @@ import {
   updateSettings,
   getSongs,
   getAlbumsWithDuration,
+  getEqSetting,
+  setEqSetting,
+  deleteEqSetting,
+  resolveEq,
+  getEqDevices,
+  addEqDevice,
+  deleteEqDevice,
+  getActiveEqDevice,
+  setActiveEqDevice,
 } from "./helpers/db/connectDB";
 import { initDatabase } from "./helpers/db/createDB";
 import { parseFile } from "music-metadata";
@@ -375,9 +384,12 @@ ipcMain.handle("createPlaylist", async (_, data: any) => {
   return playlist;
 });
 
-ipcMain.handle("deletePlaylist", async (_, data: { id: number; coverPath?: string }) => {
-  return deletePlaylist(data);
-});
+ipcMain.handle(
+  "deletePlaylist",
+  async (_, data: { id: number; coverPath?: string }) => {
+    return deletePlaylist(data);
+  },
+);
 
 ipcMain.handle("updatePlaylist", async (_, data: any) => {
   const playlist = await updatePlaylist(data);
@@ -586,6 +598,107 @@ ipcMain.handle("updateLastFmSettings", async (_, data) => {
     return result;
   } catch (error) {
     console.error("Error in updateLastFmSettings:", error);
+    return false;
+  }
+});
+
+// ---- Equalizer (per-track / per-album) handlers ----
+
+// Resolve effective curve for a song on a device (track > album > none)
+ipcMain.handle("resolveEq", async (_, data) => {
+  try {
+    return await resolveEq(data?.device, data?.trackId, data?.albumKey);
+  } catch (error) {
+    console.error("Error in resolveEq:", error);
+    return { curve: null, source: "none" };
+  }
+});
+
+// Get a stored curve for device+scope+key
+ipcMain.handle("getEqSetting", async (_, data) => {
+  try {
+    return await getEqSetting(data?.device, data?.scope, data?.key);
+  } catch (error) {
+    console.error("Error in getEqSetting:", error);
+    return null;
+  }
+});
+
+// Save/update a curve for device+scope+key
+ipcMain.handle("setEqSetting", async (_, data) => {
+  try {
+    const ok = await setEqSetting(
+      data?.device,
+      data?.scope,
+      data?.key,
+      data?.curve,
+    );
+    if (mainWindow) mainWindow.webContents.send("eqSettingsChanged", data);
+    return ok;
+  } catch (error) {
+    console.error("Error in setEqSetting:", error);
+    return false;
+  }
+});
+
+// Remove a curve for device+scope+key
+ipcMain.handle("deleteEqSetting", async (_, data) => {
+  try {
+    const ok = await deleteEqSetting(data?.device, data?.scope, data?.key);
+    if (mainWindow) mainWindow.webContents.send("eqSettingsChanged", data);
+    return ok;
+  } catch (error) {
+    console.error("Error in deleteEqSetting:", error);
+    return false;
+  }
+});
+
+// ---- EQ devices ----
+ipcMain.handle("getEqDevices", async () => {
+  try {
+    return await getEqDevices();
+  } catch (error) {
+    console.error("Error in getEqDevices:", error);
+    return ["Default"];
+  }
+});
+
+ipcMain.handle("getActiveEqDevice", async () => {
+  try {
+    return await getActiveEqDevice();
+  } catch (error) {
+    console.error("Error in getActiveEqDevice:", error);
+    return "Default";
+  }
+});
+
+ipcMain.handle("setActiveEqDevice", async (_, data) => {
+  try {
+    const ok = await setActiveEqDevice(data?.name);
+    if (mainWindow) mainWindow.webContents.send("eqDeviceChanged", data?.name);
+    return ok;
+  } catch (error) {
+    console.error("Error in setActiveEqDevice:", error);
+    return false;
+  }
+});
+
+ipcMain.handle("addEqDevice", async (_, data) => {
+  try {
+    return await addEqDevice(data?.name);
+  } catch (error) {
+    console.error("Error in addEqDevice:", error);
+    return false;
+  }
+});
+
+ipcMain.handle("deleteEqDevice", async (_, data) => {
+  try {
+    const ok = await deleteEqDevice(data?.name);
+    if (mainWindow) mainWindow.webContents.send("eqDeviceChanged", null);
+    return ok;
+  } catch (error) {
+    console.error("Error in deleteEqDevice:", error);
     return false;
   }
 });
